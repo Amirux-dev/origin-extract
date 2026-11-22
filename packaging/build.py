@@ -86,6 +86,14 @@ def main():
                        CFBundleShortVersionString=VERSION, CFBundleVersion=VERSION,
                        NSHumanReadableCopyright='Copyright 2026 Amir MEDDAS',
                        LSMinimumSystemVersion='12.0')
+        content['CFBundleDocumentTypes'] = [dict(CFBundleTypeName='Origin Extract Project',
+                                                CFBundleTypeRole='Viewer', LSHandlerRank='Owner',
+                                                LSItemContentTypes=['fr.amirmeddas.originpack'])]
+        content['UTExportedTypeDeclarations'] = [dict(UTTypeIdentifier='fr.amirmeddas.originpack',
+                                                      UTTypeDescription='Origin Extract Project',
+                                                      UTTypeConformsTo=['public.data', 'public.archive'],
+                                                      UTTypeTagSpecification={'public.filename-extension': ['originpack'],
+                                                                              'public.mime-type': 'application/x-origin-extract'})]
         info.write_bytes(plistlib.dumps(content))
         # Signature ad hoc requise pour le fonctionnement Apple Silicon.
         # Une signature Developer ID et la notarisation restent distinctes.

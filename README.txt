@@ -10,6 +10,7 @@ Mac Apple Silicon : ouvrir le DMG arm64, puis glisser l'application dans Applica
 Mac Intel : utiliser le DMG x86_64.
 Les installateurs embarquent Python et les dependances : aucune installation
 de Python n'est necessaire pour les utilisateurs.
+Cibles : Windows 10/11 x64 ; macOS 12 ou plus recent, Apple Silicon ou Intel.
 
 UTILISATION
 Ouvrir un projet, cocher les feuilles, exporter. Les en-tetes sont inclus.

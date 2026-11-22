@@ -1434,14 +1434,37 @@ class Window(LegacyWindow):
                 pass
 
 
+class OpenApplication(QApplication):
+    file_opened = Signal(str)
+
+    def __init__(self, arguments):
+        self.pending_files = []
+        self.ready = False
+        super().__init__(arguments)
+
+    def event(self, event):
+        if event.type() == QEvent.Type.FileOpen:
+            path = event.file()
+            if path:
+                if self.ready:
+                    self.file_opened.emit(path)
+                else:
+                    self.pending_files.append(path)
+                return True
+        return super().event(event)
+
+
 def run(open_path=None):
-    app = QApplication(sys.argv[:1])
+    app = OpenApplication(sys.argv[:1])
     app.setApplicationName('Origin Extract')
     app.setOrganizationName(__author__)
     app.setApplicationVersion(__version__)
     apply_appearance(app)
     window = Window()
+    app.file_opened.connect(window.open_path)
+    app.ready = True
     window.show()
-    if open_path:
-        QTimer.singleShot(120, lambda: window.open_path(Path(open_path)))
+    initial = app.pending_files[0] if app.pending_files else open_path
+    if initial:
+        QTimer.singleShot(120, lambda: window.open_path(Path(initial)))
     return app.exec()

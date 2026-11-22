@@ -29,6 +29,7 @@ WizardStyle=modern
 WizardSizePercent=100
 CloseApplications=yes
 RestartApplications=no
+ChangesAssociations=yes
 
 [Languages]
 Name: "french"; MessagesFile: "compiler:Languages\French.isl"
@@ -46,3 +47,21 @@ Name: "{autodesktop}\Origin Extract"; Filename: "{app}\OriginExtract.exe"; Worki
 
 [Run]
 Filename: "{app}\OriginExtract.exe"; Description: "Lancer Origin Extract"; Flags: nowait postinstall skipifsilent
+
+[Registry]
+Root: HKCU; Subkey: "Software\Classes\.originpack"; ValueType: string; ValueName: ""; ValueData: "OriginExtract.Project"; Flags: createvalueifdoesntexist
+Root: HKCU; Subkey: "Software\Classes\.originpack\OpenWithProgids"; ValueType: none; ValueName: "OriginExtract.Project"; Flags: uninsdeletevalue
+Root: HKCU; Subkey: "Software\Classes\OriginExtract.Project"; ValueType: string; ValueName: ""; ValueData: "Projet Origin Extract"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\OriginExtract.Project\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\OriginExtract.exe,0"
+Root: HKCU; Subkey: "Software\Classes\OriginExtract.Project\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\OriginExtract.exe"" --open ""%1"""
+
+[Code]
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  CurrentHandler: String;
+begin
+  if CurUninstallStep = usPostUninstall then
+    if RegQueryStringValue(HKCU, 'Software\Classes\.originpack', '', CurrentHandler) then
+      if CurrentHandler = 'OriginExtract.Project' then
+        RegDeleteValue(HKCU, 'Software\Classes\.originpack', '');
+end;
