@@ -1,0 +1,43 @@
+SIGNPATH FOUNDATION - APPLICATION DRAFT (NOT SUBMITTED)
+
+Project: Origin Extract
+Maintainer: Amir MEDDAS
+GitHub maintainer: https://github.com/Amirux-dev
+Repository: https://github.com/Amirux-dev/origin-extract
+License: MIT for project code; third-party components keep their own licenses.
+Code signing policy: CODE_SIGNING_POLICY.txt at the repository root.
+Build pipeline: .github/workflows/installers.yml, GitHub-hosted Windows and Mac.
+Existing successful build: https://github.com/Amirux-dev/origin-extract/actions/runs/45079451219
+
+Description:
+Origin Extract is a scientific desktop utility for exporting Origin worksheet
+tables to TXT/CSV in batches. Windows conversion automates a separately installed
+Origin Viewer. Cross-platform .originpack files let macOS users work offline;
+an optional user-started relay can convert selected OPJU projects on a Windows PC.
+The UI is English and credits Amir MEDDAS. Python, PySide6/Qt, pywinauto and pywin32
+are bundled or used under their respective open-source licenses. Origin Viewer
+is proprietary and is NOT bundled with our distributions.
+
+Signing need:
+Our unsigned Windows installer is blocked by a code-integrity policy when Inno
+Setup launches an unsigned temporary helper. We seek signing for our own Windows
+application, installer, temporary setup helper and uninstaller. We understand
+that signing only the outer Setup.exe is insufficient and that upstream third-
+party libraries must not be signed with our project certificate.
+Please advise on the supported multi-stage artifact configuration for Inno Setup.
+
+Privacy:
+No telemetry, automatic cloud upload or collection of measurement data.
+Only source code and generic installer artifacts are intended for public release.
+User OPJU, .originpack and exported scientific data remain private.
+
+Before submission:
+- Publish a binary release with the code signing policy linked on its page.
+- Verify two-factor authentication for repository and SignPath access.
+- Maintainer must review and accept the provider's terms personally.
+- Add a contact email in the provider's own form; no email has been inferred.
+- Project reputation, licensing eligibility, artifact support and approval are
+  subject to SignPath's review. No service approval has been obtained.
+
+Official application: https://signpath.org/apply
+Official terms: https://signpath.org/terms
