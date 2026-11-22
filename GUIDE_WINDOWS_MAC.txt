@@ -1,0 +1,57 @@
+﻿ORIGIN EXTRACT 2.1
+Auteur : Amir MEDDAS
+
+INSTALLER
+Windows : lancer le fichier OriginExtract-2.1.0-Windows-x64-Setup.exe.
+Mac M1/M2/M3/M4 ou plus recent : ouvrir le DMG arm64 et glisser Origin Extract
+sur Applications. Pour un Mac Intel, choisir le DMG x86_64.
+Python et les dependances sont inclus dans ces distributions.
+
+Les builds actuels ne sont pas signes avec un certificat Windows ou un
+Developer ID Apple, ni notarises. Un avertissement de provenance est donc
+possible. La mention Amir MEDDAS identifie l'auteur, pas une signature verifiee.
+
+EXPORTER
+Ouvrir un projet, cocher les feuilles, cliquer sur Exporter.
+TXT/CSV, separateur et en-tetes se reglent avec le bouton TXT · TAB.
+Le bouton Destination choisit le dossier de sortie. Chaque export cree un
+nouveau dossier ; aucun fichier existant n'est ecrase.
+
+Les nombres peuvent etre raccourcis uniquement dans l'apercu. Leur valeur
+complete apparait au survol et les exports conservent leur precision.
+La recherche filtre la liste sans decocher les feuilles masquees.
+Les courbes sont des apercus, eventuellement echantillonnes, sans ajustement.
+
+MAC HORS LIGNE
+Un .originpack contient les tableaux, leurs metadonnees et leurs empreintes.
+Il s'ouvre et se reexporte sans Origin Viewer et sans PC connecte.
+Pour en creer un depuis Windows : ouvrir le projet, puis menu ... > Partager
+un .originpack. Le fichier peut ensuite etre transfere au Mac.
+
+NOUVEAU .OPJU DEPUIS LE MAC
+Le .opju brut est converti sur un PC Windows possedant Origin Viewer.
+Sur le PC : menu ... > Mac/PC > Mon PC Windows > Demarrer le relais.
+Sur le Mac : recopier l'adresse et la cle dans Mon Mac, tester et enregistrer.
+Ouvrir ensuite le .opju sur le Mac : le PC le convertit et renvoie les tableaux.
+Le PC doit rester allume, sa session ouverte et le relais actif.
+
+Le relais utilise HTTP avec une cle d'acces sur le reseau local, port TCP 8765.
+Il ne demarre pas automatiquement et ne modifie pas le pare-feu. Ce n'est pas
+un service Internet chiffre. Aucun service cloud ne recoit les projets.
+Pendant une conversion, eviter de manipuler le Viewer ou de copier du texte
+sur le PC : le moteur utilise son presse-papiers. Le texte initial est restaure
+si possible ; les autres formats du presse-papiers ne sont pas restaures.
+
+NOMS DE COLONNES
+Les noms Origin sont conserves. Les correspondances confirmees sont signalees
+Reconstitue et limitees au projet exact. Une lettre seule indique un nom encore
+inconnu. Les unites ne sont ajoutees que si elles existent dans les metadonnees.
+Les graphiques, mises en page et matrices ne sont pas convertis en tableaux.
+Les restrictions du Viewer restent applicables. Le projet source reste intact.
+
+FABRICATION AUTOMATIQUE
+Le workflow GitHub Installateurs fabrique Windows x64, Mac Apple Silicon et
+Mac Intel. Les controles incluent les tests fonctionnels, le demarrage du
+binaire, l'installation silencieuse sous Windows et la verification du DMG.
+Les artefacts ne contiennent pas les fichiers scientifiques de l'auteur.
+Les polices et bibliotheques tierces sont creditees dans CREDITS.txt.

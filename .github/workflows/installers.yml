@@ -1,0 +1,79 @@
+name: Installateurs
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows x64
+            os: windows-latest
+            architecture: x64
+            artifact: Windows-x64
+          - name: Mac Apple Silicon
+            os: macos-15
+            architecture: arm64
+            artifact: Mac-Apple-Silicon
+          - name: Mac Intel
+            os: macos-15-intel
+            architecture: x64
+            artifact: Mac-Intel
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.13'
+          architecture: ${{ matrix.architecture }}
+      - name: Dépendances Windows
+        if: runner.os == 'Windows'
+        run: python -m pip install -r requirements.txt pyinstaller==6.22.3
+      - name: Dépendances Mac
+        if: runner.os == 'macOS'
+        run: python -m pip install -r requirements-macos.txt pyinstaller==6.22.3
+      - name: Tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python -m unittest discover -s tests -v
+      - name: Compiler
+        run: python packaging/build.py
+      - name: Vérifier l’application Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $app = Start-Process -FilePath "$pwd/dist/OriginExtract/OriginExtract.exe" -ArgumentList '--smoke-test','--diagnostic-file',"$pwd/installers/smoke-windows.json" -Wait -PassThru
+          if ($app.ExitCode -ne 0) { throw "Le test de l'application a echoue : $($app.ExitCode)" }
+          Get-Content installers/smoke-windows.json
+      - name: Vérifier l’installateur Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem installers/*Setup.exe | Select-Object -First 1
+          $installDir = Join-Path $env:RUNNER_TEMP 'OriginExtract-install-test'
+          $process = Start-Process -FilePath $setup.FullName -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=$installDir" -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Installation en echec : $($process.ExitCode)" }
+          $process = Start-Process -FilePath "$installDir/OriginExtract.exe" -ArgumentList '--smoke-test','--diagnostic-file',"$pwd/installers/smoke-installed.json" -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "L'application installee ne demarre pas" }
+      - name: Vérifier le DMG
+        if: runner.os == 'macOS'
+        run: hdiutil verify installers/*.dmg
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: OriginExtract-${{ matrix.artifact }}
+          path: |
+            installers/*.exe
+            installers/*.dmg
+            installers/smoke-*.json
+          if-no-files-found: error
+          retention-days: 30

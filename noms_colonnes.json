@@ -1,0 +1,16 @@
+{
+  "description": "Noms reconstitués par cohérence avec le tableau voisin nommé, selon la correspondance confirmée par l'utilisateur. Les noms Origin existants restent prioritaires. Règles limitées au projet exact identifié par son SHA256.",
+  "projects": {
+    "9e56210ddeeb8ba00dad39db300663c4400c78a9972b653c3b3138d17afe2749": {
+      "project_name": "from6jun2026_AGH.opju",
+      "sheets": {
+        "sr3ru2o7sust1": ["Tsample", "Tvit", "X", "Y", "R", "phi", "B"],
+        "sr3ru2o7sust2": ["Tsample", "Tvit", "X", "Y", "R", "phi", "B"],
+        "sr3ru2o7sust4": ["Tsample", "Tvit", "X", "Y", "R", "phi", "B"],
+        "sr3ru2o7sust5": ["Tsample", "Tvit", "X", "Y", "R", "phi", "B", "time"],
+        "sr3ru2o7sust6": ["Tsample", "Tvit", "X", "Y", "R", "phi", "B", "time"],
+        "sr3ru2o7sust7": ["Tsample", "Tvit", "X", "Y", "R", "phi", "B", "time"]
+      }
+    }
+  }
+}

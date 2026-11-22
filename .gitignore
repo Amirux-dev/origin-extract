@@ -1,0 +1,13 @@
+.venv*/
+__pycache__/
+*.pyc
+.build/
+build/
+dist/
+installers/
+Developpement/
+Exemples/
+*.opju
+*.opj
+*.originpack
+*.spec

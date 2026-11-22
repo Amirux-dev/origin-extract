@@ -1,0 +1,245 @@
+"""Relais optionnel : le Mac envoie un OPJU au PC et reçoit un projet portable."""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+import hmac
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import json
+from pathlib import Path
+import secrets
+import socket
+import tempfile
+import threading
+import time
+import traceback
+from urllib.error import HTTPError, URLError
+from urllib.parse import parse_qs, quote, urlparse
+from urllib.request import Request, urlopen
+
+from .core import Cancelled, check_cancel, convert_windows, load_pack, pack_bytes, safe_name
+
+MAX_UPLOAD = 512 * 1024 * 1024
+
+
+@dataclass
+class Job:
+    id: str
+    state: str = 'en_attente'
+    messages: list[str] = field(default_factory=list)
+    error: str = ''
+    result: bytes | None = None
+    stop: threading.Event = field(default_factory=threading.Event)
+
+
+class Bridge:
+    def __init__(self, viewer, host='127.0.0.1', port=0, token=None, converter=convert_windows):
+        self.viewer = str(viewer)
+        self.token = token or secrets.token_urlsafe(32)
+        self.jobs = {}
+        self.lock = threading.Lock()
+        self.conversion_lock = threading.Lock()
+        self.converter = converter
+        owner = self
+
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self, *args):
+                pass
+
+            def authenticated(self):
+                provided = self.headers.get('Authorization', '')
+                return hmac.compare_digest(provided, 'Bearer ' + owner.token)
+
+            def reply(self, status, payload, binary=False):
+                raw = payload if binary else json.dumps(payload, ensure_ascii=False).encode('utf-8')
+                self.send_response(status)
+                self.send_header('Content-Type', 'application/octet-stream' if binary else 'application/json; charset=utf-8')
+                self.send_header('Content-Length', str(len(raw)))
+                self.send_header('Cache-Control', 'no-store')
+                self.end_headers()
+                try:
+                    self.wfile.write(raw)
+                except (BrokenPipeError, ConnectionResetError):
+                    pass
+
+            def do_GET(self):
+                if not self.authenticated():
+                    return self.reply(401, {'error': 'Clé de connexion incorrecte.'})
+                parsed = urlparse(self.path)
+                if parsed.path == '/health':
+                    return self.reply(200, dict(service='origin-extract', version=1))
+                parts = parsed.path.strip('/').split('/')
+                if len(parts) not in (2, 3) or parts[0] != 'jobs':
+                    return self.reply(404, {'error': 'Adresse inconnue.'})
+                with owner.lock:
+                    job = owner.jobs.get(parts[1])
+                    if job is None:
+                        return self.reply(404, {'error': 'Conversion introuvable.'})
+                    if len(parts) == 3 and parts[2] == 'pack':
+                        if job.state != 'termine':
+                            return self.reply(409, {'error': 'La conversion est encore en cours.'})
+                        return self.reply(200, job.result, binary=True)
+                    if len(parts) == 2:
+                        return self.reply(200, dict(id=job.id, state=job.state,
+                                                    messages=list(job.messages), error=job.error))
+                self.reply(404, {'error': 'Adresse inconnue.'})
+
+            def do_POST(self):
+                if not self.authenticated():
+                    return self.reply(401, {'error': 'Clé de connexion incorrecte.'})
+                parsed = urlparse(self.path)
+                if parsed.path.endswith('/cancel'):
+                    parts = parsed.path.strip('/').split('/')
+                    if len(parts) != 3 or parts[0] != 'jobs':
+                        return self.reply(404, {'error': 'Adresse inconnue.'})
+                    with owner.lock:
+                        job = owner.jobs.get(parts[1])
+                        if job is None:
+                            return self.reply(404, {'error': 'Conversion introuvable.'})
+                        job.stop.set()
+                    return self.reply(200, {'state': 'arret_demande'})
+                if parsed.path != '/convert':
+                    return self.reply(404, {'error': 'Adresse inconnue.'})
+                try:
+                    length = int(self.headers.get('Content-Length', '0'))
+                except ValueError:
+                    length = 0
+                if not 1 <= length <= MAX_UPLOAD:
+                    return self.reply(413, {'error': 'Choisissez un projet de moins de 512 Mo.'})
+                self.connection.settimeout(60)
+                body = self.rfile.read(length)
+                if len(body) != length or not body.startswith((b'CPYUA', b'CPYA')):
+                    return self.reply(400, {'error': 'Le fichier ne ressemble pas à un projet Origin.'})
+                name = parse_qs(parsed.query).get('name', ['projet.opju'])[0]
+                name = safe_name(name)
+                if Path(name).suffix.lower() not in ('.opj', '.opju'):
+                    return self.reply(400, {'error': 'Extension OPJ ou OPJU attendue.'})
+                with owner.lock:
+                    if sum(j.state in ('en_attente', 'conversion') for j in owner.jobs.values()) >= 4:
+                        return self.reply(429, {'error': 'Le PC a déjà plusieurs conversions en attente.'})
+                    # Retirer les anciens résultats en mémoire, sans toucher aux fichiers utilisateur.
+                    if len(owner.jobs) >= 20:
+                        for key, old in list(owner.jobs.items()):
+                            if old.state not in ('en_attente', 'conversion'):
+                                del owner.jobs[key]
+                                if len(owner.jobs) < 20:
+                                    break
+                    job = Job(secrets.token_hex(16))
+                    owner.jobs[job.id] = job
+                threading.Thread(target=owner.work, args=(job, name, body), daemon=True).start()
+                self.reply(202, {'id': job.id})
+
+        self.server = ThreadingHTTPServer((host, port), Handler)
+        self.thread = None
+
+    @property
+    def port(self):
+        return self.server.server_address[1]
+
+    def start(self):
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+
+    def close(self):
+        with self.lock:
+            for job in self.jobs.values():
+                job.stop.set()
+        self.server.shutdown()
+        self.server.server_close()
+        if self.thread:
+            self.thread.join(timeout=3)
+
+    def work(self, job, name, body):
+        def log(message):
+            with self.lock:
+                job.messages.append(str(message))
+                job.messages = job.messages[-300:]
+        try:
+            with self.conversion_lock:
+                check_cancel(job.stop)
+                with self.lock:
+                    job.state = 'conversion'
+                with tempfile.TemporaryDirectory(prefix='OriginExtract-') as folder:
+                    path = Path(folder) / name
+                    path.write_bytes(body)
+                    project = self.converter(path, self.viewer, Path(folder) / 'exports', job.stop, log)
+                    result = pack_bytes(project, job.stop)
+                    with self.lock:
+                        job.result = result
+                        job.state = 'termine'
+        except Exception as exc:
+            log(traceback.format_exc())
+            with self.lock:
+                job.error = str(exc)
+                job.state = 'arrete' if isinstance(exc, Cancelled) or job.stop.is_set() else 'erreur'
+
+
+def local_addresses(port):
+    addresses = []
+    try:
+        for item in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            address = item[4][0]
+            if not address.startswith('127.') and address not in addresses:
+                addresses.append(address)
+    except OSError:
+        pass
+    return [f'http://{address}:{port}' for address in addresses] or [f'http://127.0.0.1:{port}']
+
+
+def request(base, token, path, data=None, timeout=30, binary=False):
+    url = base.rstrip('/') + path
+    parsed = urlparse(url)
+    if parsed.scheme not in ('http', 'https') or not parsed.hostname:
+        raise ValueError('Indiquez une adresse http:// ou https:// pour le PC Windows.')
+    req = Request(url, data=data, headers={'Authorization': 'Bearer ' + token,
+                                         'Content-Type': 'application/octet-stream'})
+    try:
+        with urlopen(req, timeout=timeout) as response:
+            body = response.read(MAX_UPLOAD + 1)
+            if len(body) > MAX_UPLOAD:
+                raise ValueError('La réponse du relais dépasse 512 Mo.')
+            return body if binary else json.loads(body.decode('utf-8'))
+    except HTTPError as exc:
+        try:
+            message = json.loads(exc.read().decode('utf-8')).get('error')
+        except Exception:
+            message = None
+        raise RuntimeError(message or f'Le relais a renvoyé une erreur HTTP {exc.code}.') from exc
+    except URLError as exc:
+        raise RuntimeError("PC Windows injoignable. Vérifiez l'adresse, le réseau et que le relais est démarré.") from exc
+
+
+def convert_remote(project, base, token, stop=None, log=lambda message: None):
+    check_cancel(stop)
+    path = Path(project)
+    if path.stat().st_size > MAX_UPLOAD:
+        raise ValueError('Le projet dépasse 512 Mo.')
+    health = request(base, token, '/health')
+    if health.get('service') != 'origin-extract':
+        raise RuntimeError("L'adresse ne correspond pas à un relais Origin Extract.")
+    log('Envoi du projet au PC Windows…')
+    job = request(base, token, '/convert?name=' + quote(path.name), path.read_bytes(), timeout=90)
+    job_path = '/jobs/' + job['id']
+    seen = 0
+    try:
+        while True:
+            check_cancel(stop)
+            state = request(base, token, job_path)
+            messages = state.get('messages', [])
+            for message in messages[seen:]:
+                log(message)
+            seen = len(messages)
+            if state['state'] == 'termine':
+                log('Réception du projet portable…')
+                return load_pack(request(base, token, job_path + '/pack', binary=True, timeout=90), stop)
+            if state['state'] in ('erreur', 'arrete'):
+                raise RuntimeError(state.get('error') or 'Conversion interrompue sur le PC Windows.')
+            if stop is not None:
+                stop.wait(0.75)
+            else:
+                time.sleep(0.75)
+    except Cancelled:
+        try:
+            request(base, token, job_path + '/cancel', b'', timeout=5)
+        except Exception:
+            pass
+        raise
