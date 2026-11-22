@@ -21,6 +21,7 @@ from . import __version__, __author__
 from .theme import STYLE as COMPACT_STYLE, PURPLE, apply_appearance, load_fonts
 from .core import Cancelled, ExportOptions, Project, convert_windows, export_project, load_export, load_pack, write_pack
 from .bridge import Bridge, convert_remote, local_addresses, request
+from .network import firewall_status, firewall_message, open_firewall_settings, program_paths
 
 ROOT = Path(__file__).resolve().parents[1]
 BLUE = PURPLE
@@ -287,7 +288,9 @@ class ConnectionDialog(QDialog):
         super().__init__(window)
         self.window = window
         self.setWindowTitle('Mac ↔ PC')
-        self.resize(460, 410)
+        self.resize(470, 470)
+        self.test_task = None
+        self.network_task = None
         layout = QVBoxLayout(self)
         layout.setContentsMargins(18, 18, 18, 18)
         layout.addWidget(label('Mac ↔ PC', 'Title'))
@@ -322,31 +325,65 @@ class ConnectionDialog(QDialog):
             server_layout.addLayout(viewer_row)
             self.server_button = button('', self.toggle_bridge, 'Primary')
             server_layout.addWidget(self.server_button)
-            self.server_address = QLineEdit()
-            self.server_address.setReadOnly(True)
+            self.server_address = QComboBox()
+            self.server_address.setMinimumWidth(220)
             self.server_token = QLineEdit()
             self.server_token.setReadOnly(True)
             self.server_token.setEchoMode(QLineEdit.EchoMode.Password)
             server_layout.addWidget(label('Adresse du PC'))
-            server_layout.addWidget(self.server_address)
+            address_row = QHBoxLayout()
+            address_row.addWidget(self.server_address, 1)
+            address_row.addWidget(button('Copier', lambda: QApplication.clipboard().setText(self.server_address.currentText())))
+            server_layout.addLayout(address_row)
             server_layout.addWidget(label('Clé de connexion'))
             key_row = QHBoxLayout()
             key_row.addWidget(self.server_token)
             key_row.addWidget(button('Copier la clé', lambda: QApplication.clipboard().setText(self.server_token.text())))
             server_layout.addLayout(key_row)
+            self.network_status = label('', 'Body', True)
+            server_layout.addWidget(self.network_status)
+            network_row = QHBoxLayout()
+            network_row.addWidget(button('Pare-feu…', self.firewall_settings))
+            self.check_network_button = button('Revérifier', self.check_network)
+            network_row.addWidget(self.check_network_button)
+            server_layout.addLayout(network_row)
             self.refresh_bridge()
+            self.check_network()
         else:
             server_layout.addWidget(label('Le relais démarre sur le PC Windows.', 'SectionTitle'))
             server_layout.addWidget(label('Sur le PC : ouvrez Origin Extract, puis Connexion Mac et PC → Relais Windows. Le Mac fonctionne ensuite sans installer Origin Viewer.', 'Body', True))
         server_layout.addStretch()
         tabs.addTab(server, 'Mon PC Windows')
+        tabs.setCurrentIndex(1 if sys.platform == 'win32' else 0)
         controls = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         controls.button(QDialogButtonBox.StandardButton.Save).setText('Enregistrer')
         controls.button(QDialogButtonBox.StandardButton.Cancel).setText('Fermer')
         controls.accepted.connect(self.save)
         controls.rejected.connect(self.reject)
         layout.addWidget(controls)
-        self.test_task = None
+
+    def check_network(self):
+        if self.network_task is not None and self.network_task.isRunning():
+            return
+        self.check_network_button.setEnabled(False)
+        self.network_status.setText('Vérification du réseau…')
+        self.network_task = Task(lambda task: firewall_status())
+        self.network_task.success.connect(lambda status: self.network_status.setText(firewall_message(status)))
+        self.network_task.failure.connect(lambda message: self.network_status.setText('Diagnostic indisponible. Les réglages restent accessibles.'))
+        self.network_task.finished.connect(lambda: self.check_network_button.setEnabled(True))
+        self.network_task.start()
+
+    def firewall_settings(self):
+        try:
+            open_firewall_settings()
+        except OSError as exc:
+            QMessageBox.warning(self, 'Pare-feu Windows', str(exc))
+            return
+        name = 'OriginExtract.exe' if getattr(sys, 'frozen', False) else Path(program_paths()[-1]).name
+        QMessageBox.information(self, 'Réautoriser le relais',
+            f'Dans la fenêtre Windows : « Modifier les paramètres », puis cochez « Privé » pour {name}.\n\n'
+            'Après un refus, Windows peut garder le blocage sans redemander. Validez les réglages, puis cliquez « Revérifier ».\n\n'
+            'Le Mac et le PC doivent partager un réseau privé de confiance, ou être reliés par Tailscale.')
 
     def choose_viewer(self):
         path, _ = QFileDialog.getOpenFileName(self, 'Choisir Origin Viewer', self.viewer.text(), 'Origin Viewer (*.exe)')
@@ -376,13 +413,20 @@ class ConnectionDialog(QDialog):
                 self.window.settings.setValue('relay/token', bridge.token)
                 self.window.settings.setValue('viewer', str(viewer))
             except OSError as exc:
-                QMessageBox.warning(self, 'Relais indisponible', str(exc))
+                message = 'Le port 8765 est déjà utilisé. Fermez le relais ouvert dans une autre fenêtre d’Origin Extract.' if getattr(exc, 'winerror', None) == 10048 or exc.errno == 98 else str(exc)
+                QMessageBox.warning(self, 'Relais indisponible', message)
         self.refresh_bridge()
 
     def refresh_bridge(self):
         bridge = self.window.bridge
         self.server_button.setText('Arrêter le relais' if bridge else 'Démarrer le relais sur ce PC')
-        self.server_address.setText('  ou  '.join(local_addresses(bridge.port)) if bridge else '')
+        current = self.server_address.currentText()
+        self.server_address.clear()
+        self.server_address.addItems(local_addresses(bridge.port) if bridge else [])
+        if current:
+            index = self.server_address.findText(current)
+            if index >= 0:
+                self.server_address.setCurrentIndex(index)
         self.server_token.setText(bridge.token if bridge else '')
         self.window.mode_label.setText('Relais Mac actif' if bridge else self.window.default_mode())
 
@@ -409,6 +453,9 @@ class ConnectionDialog(QDialog):
     def done(self, result):
         if self.test_task is not None and self.test_task.isRunning():
             self.test_status.setText('Attendez la fin du test de connexion…')
+            return
+        if self.network_task is not None and self.network_task.isRunning():
+            self.network_status.setText('Fin de la vérification du réseau…')
             return
         super().done(result)
 
@@ -1314,7 +1361,12 @@ class Window(LegacyWindow):
         self.list.setCurrentRow(0)
         self.select_sheet(0)
         self.update_selection()
-        self.status_label.setText('Prêt')
+        self.status_label.setText('Prêt' if not project.warnings else f'{len(project.warnings)} avertissement(s) · journal')
+        ignored = [item for item in project.skipped if item.get('type') in ('AnalysisReport', 'EmbeddedGraphSheet', 'EmptySheet', 'NonDataSheet')]
+        if ignored:
+            self.log.appendPlainText(f'{len(ignored)} feuille(s) sans tableau exportable ignorée(s). Détails dans _rapport.json.')
+        for warning in project.warnings:
+            self.log.appendPlainText(f"{warning.get('book', '')}/{warning.get('sheet', '')} : {warning.get('reason', '')}")
         QTimer.singleShot(50, lambda: self.elide(self.project_title, self.project.name) if self.project else None)
 
     def select_sheet(self, index):
@@ -1323,7 +1375,7 @@ class Window(LegacyWindow):
         sheet = self.project.sheets[index]
         self.elide(self.sheet_title, sheet.name)
         self.sheet_detail.setText(f'{len(sheet.rows):,} lignes · {len(sheet.headers)} colonnes'.replace(',', ' '))
-        missing = sum(c.get('source') == 'Origin column letter' for c in sheet.record.get('column_metadata', []) or [])
+        missing = sum(not c.get('name') and not c.get('reconstructed_name') for c in sheet.record.get('column_metadata', []) or [])
         self.provenance.setObjectName('Reconstructed' if sheet.reconstructed or missing else 'BlueBadge')
         self.provenance.setText('Reconstitué' if sheet.reconstructed else f'{missing} à nommer' if missing else 'Origin')
         self.provenance.setToolTip('Noms reconstitués selon la correspondance confirmée.' if sheet.reconstructed else 'Noms conservés depuis Origin.' if not missing else 'Une lettre seule indique un nom encore inconnu.')

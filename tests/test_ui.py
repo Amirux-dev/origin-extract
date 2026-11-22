@@ -14,7 +14,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 from origin_extract.core import load_pack
 from origin_extract.bridge import Bridge
-from origin_extract.ui import Window, STYLE
+from origin_extract.ui import Window, ConnectionDialog, STYLE
 from fixtures import sample_project
 
 SAMPLE = Path(__file__).resolve().parents[1] / 'Exemples/from6jun2026_AGH.originpack'
@@ -95,6 +95,36 @@ class InterfaceTests(unittest.TestCase):
                 window.task.wait(10000)
             window.close()
             service.close()
+
+    def test_connection_dialog_copies_one_address_and_keeps_portable_warnings(self):
+        window = Window()
+        window.settings = Settings({})
+        try:
+            if sys.platform == 'win32':
+                with patch('origin_extract.ui.firewall_status', return_value={'rules': [{'Profile': 6}]}):
+                    dialog = ConnectionDialog(window)
+                    dialog.network_task.wait(5000)
+                    self.app.processEvents()
+                    self.assertIn('bloque', dialog.network_status.text())
+                    window.bridge = Bridge('unused')
+                    window.bridge.start()
+                    with patch('origin_extract.ui.local_addresses', return_value=['http://192.168.1.2:8765', 'http://100.64.1.2:8765']):
+                        dialog.refresh_bridge()
+                        self.assertEqual(dialog.server_address.count(), 2)
+                        self.assertEqual(dialog.server_address.currentText(), 'http://192.168.1.2:8765')
+                    dialog.close()
+            from dataclasses import replace
+            sheet = self.project.sheets[0]
+            record = dict(sheet.record, column_metadata=[dict(source='Métadonnées non lisibles ; lettre de colonne')])
+            window.set_project(replace(self.project, sheets=[replace(sheet, record=record)],
+                                       warnings=[dict(reason='Noms indisponibles')]))
+            self.assertIn('avertissement', window.status_label.text())
+            self.assertIn('à nommer', window.provenance.text())
+        finally:
+            if window.bridge:
+                window.bridge.close()
+                window.bridge = None
+            window.close()
 
 
 if __name__ == '__main__':

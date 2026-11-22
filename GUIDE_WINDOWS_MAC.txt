@@ -1,8 +1,8 @@
-﻿ORIGIN EXTRACT 2.1
+ORIGIN EXTRACT 2.1.1
 Auteur : Amir MEDDAS
 
 INSTALLER
-Windows : lancer le fichier OriginExtract-2.1.0-Windows-x64-Setup.exe.
+Windows : lancer le fichier OriginExtract-2.1.1-Windows-x64-Setup.exe.
 Mac M1/M2/M3/M4 ou plus recent : ouvrir le DMG arm64 et glisser Origin Extract
 sur Applications. Pour un Mac Intel, choisir le DMG x86_64.
 Python et les dependances sont inclus dans ces distributions.
@@ -35,6 +35,17 @@ Sur le Mac : recopier l'adresse et la cle dans Mon Mac, tester et enregistrer.
 Ouvrir ensuite le .opju sur le Mac : le PC le convertit et renvoie les tableaux.
 Le PC doit rester allume, sa session ouverte et le relais actif.
 
+AUTORISATION WINDOWS REFUSEE
+Dans Mac/PC > Mon PC Windows, cliquer Pare-feu. Dans la fenetre Windows :
+Modifier les parametres, puis autoriser OriginExtract.exe sur le reseau Prive.
+Avec la version source, l'entree s'appelle pythonw.exe ou python.exe.
+Apres un refus, Windows peut conserver une regle bloquante sans redemander.
+Le bouton Reverifier relit les regles ; il ne change aucune autorisation.
+Utiliser un reseau prive de confiance ou Tailscale. Les reseaux universitaires
+publics peuvent isoler les appareils, meme apres autorisation du pare-feu.
+Copier une seule adresse depuis la liste. Un relais actif sur le PC ne prouve
+pas que le Mac peut le joindre : tester depuis le Mac avec l'adresse et la cle.
+
 Le relais utilise HTTP avec une cle d'acces sur le reseau local, port TCP 8765.
 Il ne demarre pas automatiquement et ne modifie pas le pare-feu. Ce n'est pas
 un service Internet chiffre. Aucun service cloud ne recoit les projets.
@@ -46,7 +57,13 @@ NOMS DE COLONNES
 Les noms Origin sont conserves. Les correspondances confirmees sont signalees
 Reconstitue et limitees au projet exact. Une lettre seule indique un nom encore
 inconnu. Les unites ne sont ajoutees que si elles existent dans les metadonnees.
-Les graphiques, mises en page et matrices ne sont pas convertis en tableaux.
+Les graphiques, feuilles de graphes integres, rapports d'analyse, mises en page
+et matrices ne sont pas convertis en tableaux. Les exclusions figurent dans
+_rapport.json. Les colonnes FFT complexes conservent leurs valeurs.
+Si les noms de colonnes sont illisibles, les lettres sont conservees avec un
+avertissement dans le journal et le rapport, plutot que d'inventer des noms.
+En cas d'echec, un journal de conversion reste disponible localement dans
+AppData/Local/OriginExtract/Logs ; son chemin figure dans le message d'erreur.
 Les restrictions du Viewer restent applicables. Le projet source reste intact.
 
 FABRICATION AUTOMATIQUE

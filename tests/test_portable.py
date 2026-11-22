@@ -84,6 +84,17 @@ class PortableTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'SHA256'):
             core.load_pack(target.getvalue())
 
+    def test_warnings_and_complex_values_survive_portable_roundtrip(self):
+        raw = b'Frequency\tComplex\n1.5\t-1.63e-5 + 1.02e+2i\n'
+        sheet = core.decode_sheet(dict(sheet='FFT', columns=2, rows=1), raw)
+        warning = dict(sheet='FFT', type='ColumnMetadataUnavailable', reason='Test')
+        project = core.Project('complex', '', [sheet], warnings=[warning])
+        with tempfile.TemporaryDirectory() as folder:
+            result = core.export_project(project, folder, options=core.ExportOptions('csv', ';', True, False))
+            restored = core.load_pack(core.pack_bytes(core.load_export(result)))
+        self.assertEqual(restored.sheets[0].content, raw)
+        self.assertEqual(restored.warnings, [warning])
+
     def test_pack_path_traversal_is_rejected(self):
         target = io.BytesIO()
         manifest = dict(format=core.PACK_FORMAT, name='test', header_lines=1,

@@ -1,11 +1,11 @@
-Origin Extract 2.1
+Origin Extract 2.1.1
 Auteur : Amir MEDDAS
 
 Application compacte de conversion et d'export de tableaux Origin.
 Interface noire/violette, polices Fredoka et Nunito, apercu des donnees et courbes.
 
 INSTALLATION
-Windows : lancer OriginExtract-2.1.0-Windows-x64-Setup.exe.
+Windows : lancer OriginExtract-2.1.1-Windows-x64-Setup.exe.
 Mac Apple Silicon : ouvrir le DMG arm64, puis glisser l'application dans Applications.
 Mac Intel : utiliser le DMG x86_64.
 Les installateurs embarquent Python et les dependances : aucune installation

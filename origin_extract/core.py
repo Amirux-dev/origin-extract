@@ -13,6 +13,7 @@ import re
 import threading
 import uuid
 import zipfile
+from .number_text import decimal_text
 
 PACK_FORMAT = 'origin-extract/1'
 MAX_PACK_BYTES = 1024 * 1024 * 1024
@@ -80,6 +81,7 @@ class Project:
     sheets: list[Sheet]
     skipped: list[dict] = field(default_factory=list)
     source: str = ''
+    warnings: list[dict] = field(default_factory=list)
 
     @property
     def row_count(self):
@@ -113,7 +115,7 @@ def decode_sheet(record, raw, header_lines=1, separator='\t', decimal_comma=Fals
     if len(rows) != record.get('rows'):
         raise ValueError(f"Nombre de lignes incohérent dans {record.get('sheet', 'le tableau')}.")
     if decimal_comma:
-        rows = [[v.replace(',', '.') if NUMERIC_COMMA.fullmatch(v) else v for v in row] for row in rows]
+        rows = [[decimal_text(v, True) for v in row] for row in rows]
     if not header_lines or separator != '\t' or decimal_comma:
         output = io.StringIO(newline='')
         csv.writer(output, delimiter='\t', lineterminator='\n').writerows([headers] + rows)
@@ -151,7 +153,7 @@ def load_export(folder, stop=None, log=lambda message: None):
     source = Path(report.get('project') or folder.name)
     source_hash = digest(source.read_bytes()) if source.is_file() else report.get('source_sha256', '')
     name = Path(re.split(r'[/\\]', str(source))[-1]).stem
-    return Project(name, source_hash, sheets, report.get('skipped', []), str(folder))
+    return Project(name, source_hash, sheets, report.get('skipped', []), str(folder), report.get('warnings', []))
 
 
 def pack_bytes(project, stop=None):
@@ -166,7 +168,7 @@ def pack_bytes(project, stop=None):
             records.append(record)
             archive.writestr(record['file'], sheet.content)
         manifest = dict(format=PACK_FORMAT, name=project.name, source_sha256=project.source_hash,
-                        header_lines=1, sheets=records, skipped=project.skipped)
+                        header_lines=1, sheets=records, skipped=project.skipped, warnings=project.warnings)
         archive.writestr('manifest.json', json.dumps(manifest, ensure_ascii=False, indent=2))
     return stream.getvalue()
 
@@ -206,7 +208,8 @@ def load_pack(source, stop=None):
                 raise ValueError('Un tableau dépasse la taille maximale autorisée.')
             sheets.append(decode_sheet(record, archive.read(name), 1))
     return Project(str(manifest.get('name') or 'Projet'), str(manifest.get('source_sha256') or ''),
-                   sheets, manifest.get('skipped', []), '' if isinstance(source, bytes) else str(source))
+                   sheets, manifest.get('skipped', []), '' if isinstance(source, bytes) else str(source),
+                   manifest.get('warnings', []))
 
 
 @dataclass
@@ -230,9 +233,9 @@ def render_sheet(sheet, options):
         writer.writerow(sheet.headers)
     for row in sheet.rows:
         if options.decimal_point:
-            row = [v.replace(',', '.') if NUMERIC_COMMA.fullmatch(v) else v for v in row]
+            row = [decimal_text(v, True) for v in row]
         else:
-            row = [v.replace('.', ',') if NUMERIC_DOT.fullmatch(v) else v for v in row]
+            row = [decimal_text(v, False) for v in row]
         writer.writerow(row)
     return output.getvalue().encode('utf-8')
 
@@ -282,7 +285,7 @@ def export_project(project, destination, selected=None, options=None, stop=None,
                       format=f'UTF-8, {options.extension.upper()}',
                       separator=options.separator, header_lines=int(options.include_headers),
                       decimals='point' if options.decimal_point else 'virgule', sheets=records,
-                      skipped=project.skipped)
+                      skipped=project.skipped, warnings=project.warnings)
         (staging / '_rapport.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
         with (staging / '_index.csv').open('w', encoding='utf-8-sig', newline='') as stream:
             fields = ['book', 'sheet', 'rows', 'columns', 'file', 'sha256']
@@ -345,7 +348,14 @@ def convert_windows(project, viewer, destination, stop=None, log=lambda message:
     read_log(final=True)
     check_cancel(stop)
     if process.returncode:
-        raise RuntimeError(failure or 'La conversion Windows a échoué. Consultez le journal pour le détail.')
+        message = failure or 'La conversion Windows a échoué.'
+        try:
+            from .diagnostics import save_conversion_log
+            diagnostic = save_conversion_log(log_path.read_bytes() if log_path.exists() else message.encode('utf-8'))
+            message += f'\nJournal : {diagnostic}'
+        except OSError:
+            pass
+        raise RuntimeError(message)
     reports = list(destination.glob('*/_rapport.json'))
     complete = [r for r in reports if json.loads(r.read_text(encoding='utf-8')).get('status') == 'terminé']
     if len(complete) != 1:
