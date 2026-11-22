@@ -1,11 +1,14 @@
 """Compilation native : Windows -> .exe d'installation ; macOS -> .app et .dmg."""
 from pathlib import Path
+import argparse
+import json
 import os
 import platform
 import plistlib
 import shutil
 import subprocess
 import sys
+from signing import configuration, sign_windows_tree, verify_windows, notarize_app, notarize, mac_sign_arguments, private_run
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = '2.1.2'
@@ -46,6 +49,11 @@ def find_iscc():
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--signed', action='store_true', help='Require trusted signatures and Apple notarization; no unsigned fallback.')
+    args = parser.parse_args()
+    # Check prerequisites before creating or replacing any build artifact.
+    signing = configuration(sys.platform) if args.signed else None
     os.chdir(ROOT)
     assert (ROOT / 'dist').resolve().is_relative_to(ROOT)
     assert (ROOT / '.build').resolve().is_relative_to(ROOT)
@@ -61,6 +69,8 @@ def main():
                 '--add-data', f'{ROOT / "GUIDE_WINDOWS_MAC.txt"}{os.pathsep}.',
                 '--add-data', f'{ROOT / "CREDITS.txt"}{os.pathsep}.',
                 '--add-data', f'{ROOT / "README.txt"}{os.pathsep}.',
+                '--add-data', f'{ROOT / "LICENSE"}{os.pathsep}.',
+                '--add-data', f'{ROOT / "CODE_SIGNING_POLICY.txt"}{os.pathsep}.',
                 '--copy-metadata', 'PySide6-Essentials', '--copy-metadata', 'shiboken6']
     if sys.platform == 'win32':
         commands += ['--icon', str(ROOT / 'assets/OriginExtract.ico'),
@@ -68,6 +78,8 @@ def main():
     elif sys.platform == 'darwin':
         commands += ['--icon', str(ROOT / 'assets/OriginExtract.icns'),
                      '--osx-bundle-identifier', 'fr.amirmeddas.originextract']
+        if signing:
+            commands += ['--codesign-identity', signing.identity]
     else:
         raise SystemExit('Compilez les installateurs Windows sur Windows et les DMG sur macOS.')
     commands += [str(ROOT / 'lancer_origin_extract.py')]
@@ -76,8 +88,17 @@ def main():
         compiler = find_iscc()
         if not compiler:
             raise SystemExit('Inno Setup est necessaire : https://jrsoftware.org/isdl.php')
-        run(compiler, f'/DAppBuildDir={ROOT / "dist/OriginExtract"}',
+        compiler_options = []
+        if signing:
+            sign_windows_tree(ROOT / 'dist/OriginExtract', signing)
+            # Inno signs its temporary self-copies and uninstaller too. Signing
+            # only the finished Setup.exe would leave those helpers unsigned.
+            callback = f'$q{sys.executable}$q $q{ROOT / "packaging/signing.py"}$q --windows-file $f'
+            compiler_options = ['/DSignedRelease=1', '/Soriginextract=' + callback]
+        run(compiler, *compiler_options, f'/DAppBuildDir={ROOT / "dist/OriginExtract"}',
             f'/DSetupOutput={output}', ROOT / 'packaging/windows.iss')
+        if signing:
+            verify_windows(output / f'OriginExtract-{VERSION}-Windows-x64-Setup.exe', timestamp=True)
     else:
         bundle = ROOT / 'dist/OriginExtract.app'
         info = bundle / 'Contents/Info.plist'
@@ -97,7 +118,10 @@ def main():
         info.write_bytes(plistlib.dumps(content))
         # Signature ad hoc requise pour le fonctionnement Apple Silicon.
         # Une signature Developer ID et la notarisation restent distinctes.
-        run('codesign', '--force', '--deep', '--sign', '-', bundle)
+        if signing:
+            notarize_app(bundle, signing, ROOT / '.build', output)
+        else:
+            run('codesign', '--force', '--deep', '--sign', '-', bundle)
         run('codesign', '--verify', '--deep', '--strict', bundle)
         executable = bundle / 'Contents/MacOS/OriginExtract'
         run(executable, '--smoke-test', '--diagnostic-file', output / 'smoke-macos.json',
@@ -112,6 +136,14 @@ def main():
         name = output / f'OriginExtract-{VERSION}-Mac-{platform.machine()}.dmg'
         run('hdiutil', 'create', '-volname', 'Origin Extract', '-srcfolder', stage,
             '-ov', '-format', 'UDZO', name)
+        if signing:
+            private_run(mac_sign_arguments(signing) + [str(name)])
+            notarize(name, signing, output / 'notarization-dmg.json')
+            private_run(['spctl', '--assess', '--type', 'open', '--context', 'context:primary-signature', str(name)])
+    (output / 'signing-status.json').write_text(json.dumps(dict(
+        version=VERSION, platform=sys.platform, signed=bool(signing),
+        notarized=bool(signing and sys.platform == 'darwin'),
+        distribution='signed-release' if signing else 'unsigned-development'), indent=2), encoding='utf-8')
     print('Installateurs :', output, flush=True)
 
 

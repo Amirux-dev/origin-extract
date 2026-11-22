@@ -30,6 +30,10 @@ WizardSizePercent=100
 CloseApplications=yes
 RestartApplications=no
 ChangesAssociations=yes
+#ifdef SignedRelease
+SignTool=originextract
+SignedUninstaller=yes
+#endif
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

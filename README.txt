@@ -40,3 +40,25 @@ block execution. Author metadata identifies Amir MEDDAS; it is not a verified
 digital signature.
 
 See GUIDE_WINDOWS_MAC.txt and CREDITS.txt.
+
+LICENSE
+Application code: MIT, Copyright (c) 2026 Amir MEDDAS. See LICENSE.
+Third-party libraries and fonts retain their own licenses; see CREDITS.txt.
+Scientific projects and measurement data are not part of this repository.
+
+Code signing policy
+See CODE_SIGNING_POLICY.txt. SignPath Foundation is a proposed provider;
+no application has been submitted or accepted and no release has been signed.
+Author, maintainer and proposed signing approver: Amir MEDDAS (@Amirux-dev).
+The application transfers no information to other networked systems unless
+specifically requested by the user or the person installing or operating it.
+The optional user-started relay sends selected projects to the PC the user chose.
+Signing scripts: packaging/SIGNING.txt. Signed builds require credentials and
+fail rather than fall back to unsigned output. Current 2.1.2 downloads remain
+unsigned development distributions. Signature trust is distinct from antivirus
+approval and organization-specific application policies.
+
+UNINSTALL
+Windows: Installed apps > Origin Extract > Uninstall.
+Mac: quit Origin Extract, then move it from Applications to the Trash.
+Your exported tables and .originpack files are kept.

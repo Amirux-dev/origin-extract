@@ -1,0 +1,104 @@
+ORIGIN EXTRACT - RELEASE SIGNING
+
+CURRENT STATUS
+The distributed 2.1.2 installers are unsigned; the Mac app has only the ad-hoc
+signature needed by Apple Silicon. No Apple notarization or trusted Windows
+signature has been completed. Scripts below prepare future signed releases.
+They cannot create a trusted identity, grant service approval, or resolve
+an antivirus detection by themselves.
+
+WINDOWS - FREE OPEN-SOURCE ROUTE
+SignPath Foundation: https://signpath.org/apply
+Conditions: https://signpath.org/terms
+Project: https://github.com/Amirux-dev/origin-extract
+Application code: MIT, Copyright (c) 2026 Amir MEDDAS.
+Third-party components retain their own licenses. See CREDITS.txt.
+
+Acceptance is discretionary and requires a verifiable project reputation,
+released binaries, two-factor authentication and manually approved signing
+requests. A public repository and an MIT license alone do not grant approval.
+The certificate names SignPath Foundation as publisher; Amir MEDDAS remains
+the author. No claim of sponsorship is made until the project is accepted.
+Only the application's own binaries may be signed with the project identity;
+upstream Qt, Python and other libraries must keep their original signatures.
+
+After acceptance, configure a trusted GitHub build using the official connector:
+https://docs.signpath.io/trusted-build-systems/github
+The exact artifact configurations need agreement with SignPath. Inno Setup's
+inner temporary executables and uninstaller must be signed as well as the app
+and final Setup.exe. Signing only the final installer will not fix the blocker
+observed on the developer PC. The generic provider callback below is not yet
+a SignPath connector and does not bypass their origin verification rules.
+
+WINDOWS - AN EXISTING CERTIFICATE OR SIGNING PROVIDER
+Install the Windows SDK signing tools. In a signing environment with a trusted
+certificate and accessible private key (hardware token/HSM as applicable), set
+WINDOWS_CERT_SHA1 to the certificate thumbprint in CurrentUser/My.
+Then run:
+  python packaging/build.py --signed
+
+Alternatively, WINDOWS_SIGN_COMMAND_JSON is a JSON array invoking an existing
+signing provider. It must contain exactly one standalone {file} argument.
+Example shape only, requiring a real provider integration:
+  ["provider-signer.exe", "sign", "{file}"]
+Do not put access tokens or passwords in this variable; use the provider's
+credential mechanism. Set only ONE of WINDOWS_CERT_SHA1 and the command.
+The result is checked with Windows SignTool using the Authenticode policy
+and timestamp validation. Inno calls the same signer for its inner helpers
+and uninstaller during compilation. Untrusted/self-signed output is rejected.
+Signature trust does not guarantee that every enterprise policy accepts an app
+or its bundled native dependencies, nor that an antivirus will not flag it.
+
+Hosted GitHub runners cannot use a hardware token plugged into a personal PC.
+Do not set WINDOWS_CERT_SHA1 in GitHub unless the runner really has access to
+that certificate/private key. A signing provider needs its own configured
+connector. None is provisioned automatically by these scripts.
+
+MAC - DEVELOPER ID AND APPLE NOTARIZATION
+Requires an Apple Developer Program membership and a Developer ID Application
+certificate with its private key. Apple notarization also needs authorized
+credentials. No paid account or certificate has been obtained by these scripts.
+Eligible institutions can request a membership fee waiver:
+https://developer.apple.com/help/account/membership/fee-waivers
+
+For a local Mac with credentials already stored using notarytool, set:
+  MACOS_SIGNING_IDENTITY=Developer ID Application: LEGAL NAME (TEAMID)
+  MACOS_NOTARY_PROFILE=YOUR_EXISTING_KEYCHAIN_PROFILE
+  MACOS_SIGNING_KEYCHAIN=optional custom keychain path
+Then run:
+  python packaging/build.py --signed
+
+PyInstaller signs nested code with the Developer ID and hardened runtime.
+After metadata is updated, the outer app is re-signed, notarized and stapled.
+The final DMG is also signed, notarized and stapled. Gatekeeper assessments
+must pass before artifacts are recorded as a signed release.
+
+For hosted macOS CI, configure these GitHub secrets via GitHub's secret UI
+or gh secret set; never commit them or paste them into a chat:
+  APPLE_CERTIFICATE_P12_BASE64
+  APPLE_CERTIFICATE_PASSWORD
+  APPLE_NOTARY_API_KEY_BASE64
+  APPLE_NOTARY_KEY_ID
+  APPLE_NOTARY_ISSUER_ID
+Set MACOS_SIGNING_IDENTITY as a repository variable. The key must be an
+authorized App Store Connect team API key supporting notarytool.
+The workflow uses an ephemeral keychain and removes generated key files.
+
+WORKFLOW MODES
+Manual builds default to unsigned development installers.
+The signed input requires credentials for all three platform builds.
+Version tag builds require signing and fail when credentials are missing.
+Signed builds never silently fall back to unsigned or ad-hoc output.
+signing-status.json states the actual mode; Apple acceptance reports are kept
+only after acceptance checks. No private signing material enters artifacts.
+
+VERIFICATION LIMITS
+The missing-credential and rejection paths can be tested without accounts.
+Actual release signing, Gatekeeper acceptance and provider integration cannot
+be validated until credentials and service approvals are available.
+
+References:
+https://jrsoftware.org/inno-setup/documentation/topic_setup_signtool.htm
+https://pyinstaller.org/en/stable/feature-notes.html#macos-binary-code-signing
+https://developer.apple.com/documentation/security/customizing-the-notarization-workflow
+https://learn.microsoft.com/en-us/windows/win32/seccrypto/signtool

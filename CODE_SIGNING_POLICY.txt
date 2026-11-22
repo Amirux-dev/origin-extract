@@ -1,0 +1,34 @@
+Code signing policy
+
+Status: application preparation for SignPath Foundation; not accepted or signed.
+Current 2.1.2 downloads have no trusted release signature or Apple notarization.
+
+Author and maintainer: Amir MEDDAS (@Amirux-dev).
+Current committer, reviewer and proposed signing approver: Amir MEDDAS.
+Outside contributions must be reviewed by the maintainer before merging.
+Each production signing request must receive the maintainer's manual approval.
+Two-factor authentication is required for repository and signing access before
+activation; its current configuration has not been verified by this project.
+
+Proposed provider, subject to acceptance:
+Free code signing provided by SignPath.io, certificate by SignPath Foundation.
+This statement describes the proposed provider, not an existing endorsement.
+If accepted, signed publisher identity will be SignPath Foundation, while
+application authorship and copyright remain Amir MEDDAS.
+
+Privacy policy:
+This program will not transfer any information to other networked systems
+unless specifically requested by the user or the person installing or operating it.
+No telemetry or automatic project upload is implemented.
+The optional Mac/PC relay sends the selected project to the Windows PC address
+provided by the user, then returns converted tables. It uses HTTP with an access
+key and is intended for trusted networks. It starts only at the user's request.
+No scientific projects are included in the public repository or installers.
+The app opens local help files and native Windows firewall settings on request;
+it does not automatically change firewall or antivirus settings.
+
+Software license: MIT for the project's own code. Dependencies retain their
+licenses and upstream signatures; see CREDITS.txt.
+Windows: uninstall using Installed apps or the bundled uninstaller.
+Mac: quit the app, then move Origin Extract from Applications to the Trash.
+Uninstallation does not remove exported tables or .originpack files.

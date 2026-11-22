@@ -11,3 +11,8 @@ Exemples/
 *.opj
 *.originpack
 *.spec
+*.p12
+*.pfx
+*.p8
+*.keychain-db
+*.pem
