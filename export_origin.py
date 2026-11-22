@@ -73,7 +73,7 @@ def viewer_lock(check, log):
             if status != 0x102:
                 raise ctypes.WinError(ctypes.get_last_error())
             if not waiting:
-                log('Une autre conversion utilise le Viewer ; mise en attente…')
+                log('Another conversion is using the Viewer; waiting…')
                 waiting = True
         yield
     finally:
@@ -117,7 +117,7 @@ def tab_fingerprint(ctrl):
     hwnd = ctrl.handle
     _, _, width, height = win32gui.GetClientRect(hwnd)
     if width < 60 or height < 5:
-        raise RuntimeError("Le bandeau des feuilles est trop petit. Agrandissez le Viewer.")
+        raise RuntimeError("The sheet tab bar is too small. Enlarge the Viewer window.")
     hdc = win32gui.GetWindowDC(hwnd)
     source = win32ui.CreateDCFromHandle(hdc)
     target = source.CreateCompatibleDC()
@@ -127,10 +127,10 @@ def tab_fingerprint(ctrl):
         previous = target.SelectObject(bitmap)
         ok = ctypes.windll.user32.PrintWindow(hwnd, target.GetSafeHdc(), 1)
         if not ok:
-            raise RuntimeError("Impossible de lire le bandeau des feuilles dans le Viewer.")
+            raise RuntimeError("Cannot read the Viewer sheet tabs.")
         bits = bitmap.GetBitmapBits(True)
         if len(set(bits)) < 2:
-            raise RuntimeError("Le bandeau des feuilles n'a pas pu être dessiné.")
+            raise RuntimeError("The sheet tab bar could not be rendered.")
         target.SelectObject(previous)
         return hashlib.sha256(bits).hexdigest(), width, height
     finally:
@@ -147,7 +147,7 @@ def convert_table(text, decimal_point):
     # csv.reader conserve les cellules textuelles contenant des tabulations citées.
     rows = list(csv.reader(io.StringIO(text, newline=''), delimiter='\t'))
     if not rows or not any(cell.strip() for row in rows for cell in row):
-        raise UnsupportedSheet("Feuille vide.")
+        raise UnsupportedSheet("Empty sheet.")
     columns = max(map(len, rows))
     rows = [row + [''] * (columns - len(row)) for row in rows]
     if decimal_point:
@@ -175,7 +175,7 @@ def load_header_overrides(project_hash):
 
 def column_headers(labels, columns, overrides=None):
     if overrides is not None and len(overrides) != columns:
-        raise ValueError('La correspondance des noms ne correspond pas au nombre de colonnes.')
+        raise ValueError('The name mapping does not match the column count.')
     metadata = []
     names = []
     used = set()
@@ -200,7 +200,7 @@ def column_headers(labels, columns, overrides=None):
                              comment=comment, exported_header=unique,
                              reconstructed_name=reconstructed,
                              source=('Origin Long Name' if long_name else
-                                     'Reconstitué par cohérence, confirmé par utilisateur' if reconstructed else
+                                     'Restored from consistent context, confirmed by user' if reconstructed else
                                      'Origin column letter')))
     return names, metadata
 
@@ -226,7 +226,7 @@ class Exporter:
 
     def check(self):
         if self.stop.is_set():
-            raise Cancelled("Export arrêté. Les fichiers déjà écrits sont conservés.")
+            raise Cancelled("Export stopped. Files already written have been kept.")
 
     def sheet_name(self):
         self.check()
@@ -237,7 +237,7 @@ class Exporter:
             edits = dialog.descendants(class_name='Edit')
             edit = next((e for e in edits if e.control_id() in (1001, 1148)), None)
             if edit is None:
-                raise RuntimeError("Champ de nom du fichier introuvable dans le Viewer.")
+                raise RuntimeError("Cannot find the filename field in the Viewer.")
             return edit.window_text() or 'Feuille'
         finally:
             if dialog.exists(timeout=0):
@@ -273,14 +273,14 @@ class Exporter:
         grids = [item for item in frame.children() if item.class_name() == 'AfxWnd140u'
                  and item.control_id() == 59648 and item.is_visible()]
         if not grids:
-            raise UnsupportedSheet("Cette feuille ne contient pas de grille de données copiable.")
+            raise UnsupportedSheet("This sheet has no copyable data grid.")
         return max(grids, key=lambda item: item.rectangle().width() * item.rectangle().height())
 
     def copy_sheet(self):
         grid = self.grid_control()
         child_ids = {item.control_id() for item in grid.children(class_name='AfxWnd140u')}
         if {1, 2}.issubset(child_ids):
-            raise UnsupportedSheet("Rapport d'analyse Origin : mise en page non exportable en tableau TXT.",
+            raise UnsupportedSheet("Origin analysis report: the layout cannot be exported as a TXT table.",
                                    'AnalysisReport')
         click_control(grid, 25, 12)  # coin supérieur gauche : toutes les cellules
         try:
@@ -289,7 +289,7 @@ class Exporter:
                 edit = win32gui.GetSubMenu(menu, 1)
                 state = win32gui.GetMenuState(edit, 32778, win32con.MF_BYCOMMAND)
                 if state != -1 and state & (win32con.MF_GRAYED | win32con.MF_DISABLED):
-                    raise UnsupportedSheet("La copie n'est pas disponible sur cette feuille (vide ou non tabulaire).")
+                    raise UnsupportedSheet("Copy is unavailable on this sheet (empty or non-tabular).")
             return self.copy_selection()  # Copy (full precision)
         finally:
             # Quitter tout état de sélection/drag avant de changer de classeur.
@@ -306,10 +306,10 @@ class Exporter:
             rows = list(csv.reader(io.StringIO(text, newline=''), delimiter='\t'))
             if not 1 <= len(rows) <= 5 or any(len(row) != columns for row in rows):
                 raise RuntimeError("La copie des noms/unités/commentaires n'a pas renvoyé "
-                                   f'les libellés de {columns} colonnes. Export interrompu pour éviter des noms erronés.')
+                                   f'les libellés de {columns} columns. Export interrupted to avoid incorrect names.')
             labels = rows[:3]
             if any('OLabGridClipboardImageTemp' in cell for row in labels for cell in row):
-                raise RuntimeError("Le Viewer a sélectionné des images de sparklines au lieu des noms de colonnes.")
+                raise RuntimeError("The Viewer selected sparkline images instead of column names.")
             return labels + [[''] * columns for _ in range(3 - len(labels))]
         finally:
             grid.post_message(0x1f, 0, 0)
@@ -326,7 +326,7 @@ class Exporter:
                 break
             fp = newer
         else:
-            raise RuntimeError("Impossible d'atteindre le début du bandeau des feuilles.")
+            raise RuntimeError("Cannot reach the beginning of the sheet tab bar.")
         click_control(tab, 65, height // 2)
         seen_sheets = set()
 
@@ -347,7 +347,7 @@ class Exporter:
                     seen_sheets.add(key)
                     self.skipped.append(dict(folder='/'.join(folder), book=book['short'],
                                              type=exc.kind, reason=str(exc)))
-                    self.log(f"Ignoré dans {book['short']} : {exc}")
+                    self.log(f"Skipped in {book['short']} : {exc}")
                 return
             try:
                 name = self.sheet_name()
@@ -359,13 +359,13 @@ class Exporter:
                     if key not in seen_sheets:
                         seen_sheets.add(key)
                         self.skipped.append(dict(folder='/'.join(folder), book=book['short'],
-                            type='AnalysisReport', reason="Rapport avec objets intégrés, sans export tabulaire dans le Viewer."))
-                        self.log(f"Rapport d'analyse ignoré dans {book['short']}.")
+                            type='AnalysisReport', reason="Report with embedded objects, no tabular export in the Viewer."))
+                        self.log(f"Analysis report skipped in {book['short']}.")
                     return
                 name = f"{book['short']}_feuille_{len(seen_sheets) + 1}"
                 self.warnings.append(dict(book=book['short'], sheet=name, type='SheetNameUnavailable',
-                    reason='Nom de feuille non lisible dans le Viewer ; nom de fichier générique utilisé.'))
-                self.log(f'Attention : nom de feuille non lisible ; {name} utilisé.')
+                    reason='Sheet name unreadable in the Viewer; using a generic filename.'))
+                self.log(f'Warning: sheet name unreadable; using {name}.')
             # Évite les doublons produits quand plusieurs points tombent sur le même onglet.
             key = (name, hashlib.sha256(raw.encode('utf-8')).hexdigest())
             if key in seen_sheets:
@@ -373,15 +373,15 @@ class Exporter:
             seen_sheets.add(key)
             if embedded_graph_sheet(raw):
                 self.skipped.append(dict(folder='/'.join(folder), book=book['short'], sheet=name,
-                                         type='EmbeddedGraphSheet', reason='Feuille de graphes intégrés, sans tableau de données.'))
-                self.log(f'Graphes intégrés ignorés : {name}')
+                                         type='EmbeddedGraphSheet', reason='Embedded graph sheet, no data table.'))
+                self.log(f'Embedded graphs skipped: {name}')
                 return
             try:
                 content, rows, columns = convert_table(raw, self.decimal_point)
             except UnsupportedSheet as exc:
                 self.skipped.append(dict(folder='/'.join(folder), book=book['short'], sheet=name,
                                          type='EmptySheet', reason=str(exc)))
-                self.log(f'Feuille vide ignorée : {name}')
+                self.log(f'Empty sheet skipped: {name}')
                 return
             metadata = None
             metadata_error = None
@@ -395,12 +395,12 @@ class Exporter:
                     labels = [[''] * columns for _ in range(3)]
                     self.warnings.append(dict(book=book['short'], sheet=name, type='ColumnMetadataUnavailable',
                                               reason=metadata_error))
-                    self.log(f'Attention : noms de colonnes non lisibles dans {name} ; lettres conservées.')
+                    self.log(f'Warning: column names unreadable in {name}; keeping column letters.')
                 headers, metadata = column_headers(labels, columns, self.header_overrides.get(book['short']))
                 if metadata_error:
                     for item in metadata:
                         if not item.get('reconstructed_name'):
-                            item['source'] = 'Métadonnées non lisibles ; lettre de colonne'
+                            item['source'] = 'Metadata unreadable; column letter'
                 heading = io.StringIO(newline='')
                 csv.writer(heading, delimiter='\t', lineterminator='\n').writerow(headers)
                 content = heading.getvalue() + content
@@ -422,12 +422,12 @@ class Exporter:
                                      metadata_warning=metadata_error,
                                      sha256=hashlib.sha256(path.read_bytes()).hexdigest()))
             self.write_index('en cours')
-            self.log(f"{len(self.records):02d}  {name}.txt — {rows} lignes, {columns} colonnes")
+            self.log(f"{len(self.records):02d}  {name}.txt — {rows} rows, {columns} columns")
             if metadata is not None and any(c.get('reconstructed_name') for c in metadata):
-                self.log('    Noms reconstitués selon la correspondance confirmée.')
+                self.log('    Column names restored using the confirmed mapping.')
             elif metadata is not None and not any(c['name'] for c in metadata):
-                self.log('    Lettres de colonnes conservées.' if metadata_error else
-                         '    Noms absents dans Origin : lettres de colonnes conservées.')
+                self.log('    Column letters kept.' if metadata_error else
+                         '    No names in Origin: column letters kept.')
 
         save_current()
         seen_views = set()
@@ -454,13 +454,13 @@ class Exporter:
             if after == before:
                 break
         else:
-            raise RuntimeError("Le parcours des onglets n'a pas pu être terminé.")
+            raise RuntimeError("Could not finish scanning the sheet tabs.")
 
     def write_index(self, status, error=None):
         info = dict(project=str(self.project), viewer=str(self.viewer), status=status,
-                    format='UTF-8, tabulations, avec en-tête' if self.include_headers else 'UTF-8, tabulations, sans en-tête',
+                    format='UTF-8, tabs, with headers' if self.include_headers else 'UTF-8, tabs, without headers',
                     header_lines=1 if self.include_headers else 0,
-                    decimals='point' if self.decimal_point else 'format du Viewer',
+                    decimals='point' if self.decimal_point else 'Viewer format',
                     sheets=self.records, skipped=self.skipped, warnings=self.warnings, error=error)
         temp = self.output / '_rapport.json.tmp'
         temp.write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding='utf-8')
@@ -477,9 +477,9 @@ class Exporter:
 
     def _run(self):
         if not self.project.is_file() or self.project.suffix.lower() not in ('.opj', '.opju'):
-            raise ValueError("Sélectionnez un fichier .opj ou .opju existant.")
+            raise ValueError("Choose an existing .opj or .opju file.")
         if not self.viewer.is_file() or self.viewer.suffix.lower() != '.exe':
-            raise ValueError("Sélectionnez l'exécutable Origin Viewer.")
+            raise ValueError("Choose the Origin Viewer executable.")
         before_hash = hashlib.sha256(self.project.read_bytes()).hexdigest()
         self.header_overrides = load_header_overrides(before_hash)
         self.base_output.mkdir(parents=True, exist_ok=True)
@@ -490,7 +490,7 @@ class Exporter:
             self.output = self.base_output / f'{safe_name(self.project.stem, 55)}_txt_{suffix}_{count}'
             count += 1
         self.output.mkdir()
-        self.log(f'Destination : {self.output}')
+        self.log(f'Output: {self.output}')
         original_clipboard = None
         try:
             win32clipboard.OpenClipboard()
@@ -502,7 +502,7 @@ class Exporter:
         except win32clipboard.error:
             pass
         try:
-            self.log('Ouverture du projet dans une nouvelle instance du Viewer…')
+            self.log('Opening project in a new Viewer instance…')
             command = subprocess.list2cmdline([str(self.viewer), str(self.project)])
             self.app = Application(backend='win32').start(command, work_dir=str(self.viewer.parent))
             # Certaines ouvertures depuis un dossier temporaire ne donnent que
@@ -516,7 +516,7 @@ class Exporter:
             self.window.move_window(20, 20, 1400, 850)
             roots = tree.roots()
             if not roots:
-                raise RuntimeError("Le Viewer n'a pas chargé l'arborescence du projet.")
+                raise RuntimeError("The Viewer did not load the project tree.")
 
             def walk(node, path):
                 self.check()
@@ -526,7 +526,7 @@ class Exporter:
                 headers = [c['text'].lower() for c in listing.columns()]
                 def column(name):
                     if name not in headers:
-                        raise RuntimeError(f"Colonne du Viewer introuvable : {name}")
+                        raise RuntimeError(f"Viewer column not found: {name}")
                     return headers.index(name)
                 columns = [column(n) for n in ('title', 'short name', 'type')]
                 books = []
@@ -536,7 +536,7 @@ class Exporter:
                         books.append(dict(row=row, title=title, short=short))
                     elif kind not in ('Folder', ''):
                         self.skipped.append(dict(folder='/'.join(path), name=short or title, type=kind))
-                self.log(f"{'/'.join(path) or '/'} : {len(books)} classeur(s)")
+                self.log(f"{'/'.join(path) or '/'} : {len(books)} workbook(s)")
                 for book in books:
                     self.check()
                     listing.get_item(book['row']).ensure_visible()
@@ -551,7 +551,7 @@ class Exporter:
                                    for view in self.window.descendants(class_name='_Ogn3df_'))
                     while not book_active():
                         if time.monotonic() > deadline:
-                            raise RuntimeError(f"Le Viewer n'a pas activé le classeur {book['short']}.")
+                            raise RuntimeError(f"The Viewer did not activate workbook {book['short']}.")
                         self.check()
                         time.sleep(0.05)
                     time.sleep(0.1)  # laisser le nouveau tableau terminer sa mise en page
@@ -561,11 +561,11 @@ class Exporter:
 
             walk(roots[0], [])
             if not self.records:
-                raise RuntimeError("Aucune feuille de données exportable n'a été trouvée.")
+                raise RuntimeError("No exportable data sheets were found.")
             if hashlib.sha256(self.project.read_bytes()).hexdigest() != before_hash:
-                raise RuntimeError("Le fichier source a changé pendant l'export.")
+                raise RuntimeError("The source file changed during export.")
             self.write_index('terminé')
-            self.log(f'Terminé : {len(self.records)} fichier(s) TXT. Le projet source est intact.')
+            self.log(f'Complete: {len(self.records)} TXT file(s). The source project is unchanged.')
             return self.output
         except Exception as exc:
             self.write_index('arrêté' if isinstance(exc, Cancelled) else 'erreur', str(exc))
@@ -624,7 +624,7 @@ def gui(args):
         ttk.Button(frame, text='Parcourir…', command=browse).grid(row=row, column=2)
     ttk.Checkbutton(frame, text='Décimales avec un point (pratique pour Python)',
                     variable=point).grid(row=3, column=0, columnspan=3, sticky='w', pady=(10, 3))
-    ttk.Checkbutton(frame, text='Inclure les noms de colonnes et les unités',
+    ttk.Checkbutton(frame, text='Inclure les noms de columns et les unités',
                     variable=include_headers).grid(row=4, column=0, columnspan=3, sticky='w')
     ttk.Label(frame, text='Un TXT par feuille • UTF-8 • tabulations • pleine précision du Viewer\n'
               'Pendant l’export, laissez le Viewer ouvert et évitez de copier du texte.',

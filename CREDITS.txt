@@ -1,18 +1,18 @@
 Origin Extract
-Auteur : Amir MEDDAS
+Created by Amir MEDDAS
 Copyright (c) 2026 Amir MEDDAS
 
-Interface et moteurs : Python, PySide6 / Qt for Python.
-PySide6 / Qt : licences LGPL, GPL ou commerciales selon les composants.
-Les bibliotheques sont chargees dynamiquement et leurs licences accompagnent
-la distribution. Code source Qt : https://code.qt.io/ et https://www.qt.io/qt-for-python
+Interface and conversion: Python, PySide6 / Qt for Python.
+PySide6 / Qt: LGPL, GPL or commercial licenses depending on the components.
+Libraries are dynamically loaded and their licenses accompany the distribution.
+Qt source: https://code.qt.io/ and https://www.qt.io/qt-for-python
 
-Polices embarquees, sous SIL Open Font License 1.1 :
-- Fredoka : Milena Brandao et Hafontia.
-- Nunito : Vernon Adams, Cyreal et Jacques Le Bailly.
-- JetBrains Mono : JetBrains, Philipp Nurullin et Konstantin Bulenkov.
-Les licences completes figurent dans assets/fonts/*-OFL.txt.
+Bundled fonts, SIL Open Font License 1.1:
+- Fredoka: Milena Brandao and Hafontia.
+- Nunito: Vernon Adams, Cyreal and Jacques Le Bailly.
+- JetBrains Mono: JetBrains, Philipp Nurullin and Konstantin Bulenkov.
+Full license texts are in assets/fonts/*-OFL.txt.
 
-Automatisation Windows : pywinauto et pywin32, licences fournies avec les paquets.
-Origin et Origin Viewer sont des logiciels OriginLab ; Origin Extract est une
-application independante. Origin Viewer n'est pas inclus dans l'installateur.
+Windows automation: pywinauto and pywin32, licenses provided with the packages.
+Origin and Origin Viewer are OriginLab products. Origin Extract is an independent
+application. Origin Viewer is not included in the installer.

@@ -1,40 +1,42 @@
-Origin Extract 2.1.1
-Auteur : Amir MEDDAS
+Origin Extract 2.1.2
+Created by Amir MEDDAS
 
-Application compacte de conversion et d'export de tableaux Origin.
-Interface noire/violette, polices Fredoka et Nunito, apercu des donnees et courbes.
+Compact desktop app for exporting Origin tables.
+Black and purple interface, Fredoka and Nunito fonts, table and plot previews.
 
-INSTALLATION
-Windows : lancer OriginExtract-2.1.1-Windows-x64-Setup.exe.
-Mac Apple Silicon : ouvrir le DMG arm64, puis glisser l'application dans Applications.
-Mac Intel : utiliser le DMG x86_64.
-Les installateurs embarquent Python et les dependances : aucune installation
-de Python n'est necessaire pour les utilisateurs.
-Cibles : Windows 10/11 x64 ; macOS 12 ou plus recent, Apple Silicon ou Intel.
+INSTALL
+Windows: run OriginExtract-2.1.2-Windows-x64-Setup.exe.
+Mac Apple Silicon: open the arm64 DMG, then drag Origin Extract to Applications.
+Mac Intel: choose the x86_64 DMG.
+Python and dependencies are bundled. Users do not need to install Python.
+Requires Windows 10/11 x64 or macOS 12 and later.
 
-UTILISATION
-Ouvrir un projet, cocher les feuilles, exporter. Les en-tetes sont inclus.
-Le menu « ... » donne acces aux projets portables, au relais Mac/PC et au guide.
+USE
+Open a project, select sheets, export. Column headers are included by default.
+The ... menu opens portable sharing, the Mac/PC relay, the log and this guide.
+The app, messages and Windows installer are in English. Scientific column
+names and project contents keep their original language.
 
-Sur Mac, les .originpack fonctionnent hors ligne. Pour convertir un nouveau
-.opju, le relais utilise un PC Windows disposant d'Origin Viewer.
+On Mac, .originpack files work offline. To convert a new .opju, connect to a
+Windows PC with Origin Viewer using the optional relay.
+Opening the relay address in a browser shows a welcome page. To connect the
+Mac app, enter the PC address AND its connection key in Mac / PC > My Mac.
 
-COMPILATION
-Le workflow Installateurs fabrique et teste les trois versions.
-GitHub > Actions > Installateurs > Run workflow.
-Les fichiers sont disponibles dans les artefacts du workflow, pendant 30 jours.
-Ce depot et les installateurs ne contiennent pas les donnees scientifiques locales.
+BUILD
+GitHub > Actions > Installateurs > Run workflow builds and checks all 3 versions.
+Installers are stored as workflow artifacts for 30 days.
+This repository and the installers contain no local scientific projects.
 
-Localement :
+Local Windows build:
 python -m pip install -r requirements.txt pyinstaller==6.22.3
 python packaging/build.py
-Sur Mac, utiliser requirements-macos.txt a la place de requirements.txt.
-Sur Windows, le compilateur Inno Setup doit etre installe.
+On Mac, use requirements-macos.txt instead of requirements.txt.
+Windows builds also require Inno Setup.
 
-SIGNATURES
-Ces builds ne disposent pas d'un certificat Windows ni d'un compte Apple
-Developer configure pour la notarisation. Les systemes peuvent donc afficher
-un avertissement de provenance. Les metadonnees affichent l'auteur Amir MEDDAS ;
-cela ne remplace pas une signature numerique verifiee.
+SIGNING
+These builds have no Windows signing certificate or Apple Developer ID and
+are not notarized. Operating systems may display a provenance warning or
+block execution. Author metadata identifies Amir MEDDAS; it is not a verified
+digital signature.
 
-Voir GUIDE_WINDOWS_MAC.txt et CREDITS.txt.
+See GUIDE_WINDOWS_MAC.txt and CREDITS.txt.

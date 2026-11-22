@@ -237,7 +237,7 @@ class Plot(QWidget):
         points = [p for p in self.points if p is not None]
         if len(points) < 2:
             painter.setPen(QColor('#8995ab'))
-            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, 'Choisir deux colonnes numériques')
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, 'Choose two numeric columns')
             return
         x0, x1 = min(p[0] for p in points), max(p[0] for p in points)
         y0, y1 = min(p[1] for p in points), max(p[1] for p in points)
@@ -294,7 +294,7 @@ class ConnectionDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(18, 18, 18, 18)
         layout.addWidget(label('Mac ↔ PC', 'Title'))
-        layout.addWidget(label('.originpack : hors ligne   ·   .opju : via le PC', 'Body'))
+        layout.addWidget(label('.originpack: offline   ·   .opju: via PC', 'Body'))
         tabs = QTabWidget()
         layout.addWidget(tabs)
         client = QWidget()
@@ -302,25 +302,25 @@ class ConnectionDialog(QDialog):
         self.address = QLineEdit(window.settings.value('remote/address', ''))
         self.address.setPlaceholderText('http://192.168.1.10:8765')
         self.token = QLineEdit(window.settings.value('remote/token', ''))
-        self.token.setPlaceholderText('Clé de connexion fournie par le PC')
+        self.token.setPlaceholderText('Connection key from the PC')
         self.token.setEchoMode(QLineEdit.EchoMode.Password)
-        form.addWidget(label('Adresse du PC'))
+        form.addWidget(label('PC address'))
         form.addWidget(self.address)
-        form.addWidget(label('Clé de connexion'))
+        form.addWidget(label('Connection key'))
         form.addWidget(self.token)
         self.test_status = label('', 'Body', True)
-        self.test_button = button('Tester la connexion', self.test)
+        self.test_button = button('Test connection', self.test)
         form.addWidget(self.test_button)
         form.addWidget(self.test_status)
         form.addStretch()
-        tabs.addTab(client, 'Mon Mac')
+        tabs.addTab(client, 'My Mac')
         server = QWidget()
         server_layout = QVBoxLayout(server)
         if sys.platform == 'win32':
             viewer_row = QHBoxLayout()
             self.viewer = QLineEdit(window.viewer_path())
             viewer_row.addWidget(self.viewer)
-            viewer_row.addWidget(button('Choisir…', self.choose_viewer))
+            viewer_row.addWidget(button('Browse…', self.choose_viewer))
             server_layout.addWidget(label('Origin Viewer'))
             server_layout.addLayout(viewer_row)
             self.server_button = button('', self.toggle_bridge, 'Primary')
@@ -330,34 +330,34 @@ class ConnectionDialog(QDialog):
             self.server_token = QLineEdit()
             self.server_token.setReadOnly(True)
             self.server_token.setEchoMode(QLineEdit.EchoMode.Password)
-            server_layout.addWidget(label('Adresse du PC'))
+            server_layout.addWidget(label('PC address'))
             address_row = QHBoxLayout()
             address_row.addWidget(self.server_address, 1)
-            address_row.addWidget(button('Copier', lambda: QApplication.clipboard().setText(self.server_address.currentText())))
+            address_row.addWidget(button('Copy', lambda: QApplication.clipboard().setText(self.server_address.currentText())))
             server_layout.addLayout(address_row)
-            server_layout.addWidget(label('Clé de connexion'))
+            server_layout.addWidget(label('Connection key'))
             key_row = QHBoxLayout()
             key_row.addWidget(self.server_token)
-            key_row.addWidget(button('Copier la clé', lambda: QApplication.clipboard().setText(self.server_token.text())))
+            key_row.addWidget(button('Copy key', lambda: QApplication.clipboard().setText(self.server_token.text())))
             server_layout.addLayout(key_row)
             self.network_status = label('', 'Body', True)
             server_layout.addWidget(self.network_status)
             network_row = QHBoxLayout()
-            network_row.addWidget(button('Pare-feu…', self.firewall_settings))
-            self.check_network_button = button('Revérifier', self.check_network)
+            network_row.addWidget(button('Firewall…', self.firewall_settings))
+            self.check_network_button = button('Check again', self.check_network)
             network_row.addWidget(self.check_network_button)
             server_layout.addLayout(network_row)
             self.refresh_bridge()
             self.check_network()
         else:
-            server_layout.addWidget(label('Le relais démarre sur le PC Windows.', 'SectionTitle'))
-            server_layout.addWidget(label('Sur le PC : ouvrez Origin Extract, puis Connexion Mac et PC → Relais Windows. Le Mac fonctionne ensuite sans installer Origin Viewer.', 'Body', True))
+            server_layout.addWidget(label('Start the relay on your Windows PC.', 'SectionTitle'))
+            server_layout.addWidget(label('On the PC, open Origin Extract → Mac ↔ PC → My Windows PC. Your Mac can then convert projects without Origin Viewer.', 'Body', True))
         server_layout.addStretch()
-        tabs.addTab(server, 'Mon PC Windows')
+        tabs.addTab(server, 'My Windows PC')
         tabs.setCurrentIndex(1 if sys.platform == 'win32' else 0)
         controls = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
-        controls.button(QDialogButtonBox.StandardButton.Save).setText('Enregistrer')
-        controls.button(QDialogButtonBox.StandardButton.Cancel).setText('Fermer')
+        controls.button(QDialogButtonBox.StandardButton.Save).setText('Save')
+        controls.button(QDialogButtonBox.StandardButton.Cancel).setText('Close')
         controls.accepted.connect(self.save)
         controls.rejected.connect(self.reject)
         layout.addWidget(controls)
@@ -366,10 +366,10 @@ class ConnectionDialog(QDialog):
         if self.network_task is not None and self.network_task.isRunning():
             return
         self.check_network_button.setEnabled(False)
-        self.network_status.setText('Vérification du réseau…')
+        self.network_status.setText('Checking network…')
         self.network_task = Task(lambda task: firewall_status())
         self.network_task.success.connect(lambda status: self.network_status.setText(firewall_message(status)))
-        self.network_task.failure.connect(lambda message: self.network_status.setText('Diagnostic indisponible. Les réglages restent accessibles.'))
+        self.network_task.failure.connect(lambda message: self.network_status.setText('Diagnostics unavailable. You can still open settings.'))
         self.network_task.finished.connect(lambda: self.check_network_button.setEnabled(True))
         self.network_task.start()
 
@@ -377,16 +377,16 @@ class ConnectionDialog(QDialog):
         try:
             open_firewall_settings()
         except OSError as exc:
-            QMessageBox.warning(self, 'Pare-feu Windows', str(exc))
+            QMessageBox.warning(self, 'Windows Firewall', str(exc))
             return
         name = 'OriginExtract.exe' if getattr(sys, 'frozen', False) else Path(program_paths()[-1]).name
-        QMessageBox.information(self, 'Réautoriser le relais',
-            f'Dans la fenêtre Windows : « Modifier les paramètres », puis cochez « Privé » pour {name}.\n\n'
-            'Après un refus, Windows peut garder le blocage sans redemander. Validez les réglages, puis cliquez « Revérifier ».\n\n'
-            'Le Mac et le PC doivent partager un réseau privé de confiance, ou être reliés par Tailscale.')
+        QMessageBox.information(self, 'Allow the relay again',
+            f'In Windows Firewall, choose “Change settings”, then check “Private” for {name}.\n\n'
+            'After a denied request, Windows may keep blocking without asking again. Save your settings, then click “Check again”.\n\n'
+            'Use the same trusted private network on both devices, or connect them with Tailscale.')
 
     def choose_viewer(self):
-        path, _ = QFileDialog.getOpenFileName(self, 'Choisir Origin Viewer', self.viewer.text(), 'Origin Viewer (*.exe)')
+        path, _ = QFileDialog.getOpenFileName(self, 'Choose Origin Viewer', self.viewer.text(), 'Origin Viewer (*.exe)')
         if path:
             self.viewer.setText(path)
 
@@ -396,14 +396,14 @@ class ConnectionDialog(QDialog):
             with bridge.lock:
                 busy = any(j.state in ('en_attente', 'conversion') for j in bridge.jobs.values())
             if busy:
-                QMessageBox.information(self, 'Conversion en cours', 'Attendez la fin de la conversion avant de fermer le relais.')
+                QMessageBox.information(self, 'Conversion in progress', 'Wait for the conversion to finish before stopping the relay.')
                 return
             bridge.close()
             self.window.bridge = None
         else:
             viewer = Path(self.viewer.text())
             if not viewer.is_file():
-                QMessageBox.warning(self, 'Origin Viewer introuvable', 'Choisissez un exécutable Origin Viewer valide.')
+                QMessageBox.warning(self, 'Origin Viewer not found', 'Choose a valid Origin Viewer executable.')
                 return
             try:
                 secret = self.window.settings.value('relay/token', None)
@@ -413,13 +413,13 @@ class ConnectionDialog(QDialog):
                 self.window.settings.setValue('relay/token', bridge.token)
                 self.window.settings.setValue('viewer', str(viewer))
             except OSError as exc:
-                message = 'Le port 8765 est déjà utilisé. Fermez le relais ouvert dans une autre fenêtre d’Origin Extract.' if getattr(exc, 'winerror', None) == 10048 or exc.errno == 98 else str(exc)
-                QMessageBox.warning(self, 'Relais indisponible', message)
+                message = 'Port 8765 is already in use. Stop the relay in the other Origin Extract window.' if getattr(exc, 'winerror', None) == 10048 or exc.errno == 98 else str(exc)
+                QMessageBox.warning(self, 'Relay unavailable', message)
         self.refresh_bridge()
 
     def refresh_bridge(self):
         bridge = self.window.bridge
-        self.server_button.setText('Arrêter le relais' if bridge else 'Démarrer le relais sur ce PC')
+        self.server_button.setText('Stop relay' if bridge else 'Start relay on this PC')
         current = self.server_address.currentText()
         self.server_address.clear()
         self.server_address.addItems(local_addresses(bridge.port) if bridge else [])
@@ -428,17 +428,17 @@ class ConnectionDialog(QDialog):
             if index >= 0:
                 self.server_address.setCurrentIndex(index)
         self.server_token.setText(bridge.token if bridge else '')
-        self.window.mode_label.setText('Relais Mac actif' if bridge else self.window.default_mode())
+        self.window.mode_label.setText('Mac relay running' if bridge else self.window.default_mode())
 
     def test(self):
         address, token = self.address.text().strip(), self.token.text().strip()
         if not address or not token:
-            self.test_status.setText('Renseignez l’adresse et la clé du PC Windows.')
+            self.test_status.setText('Enter the Windows PC address and connection key.')
             return
         self.test_button.setEnabled(False)
-        self.test_status.setText('Connexion au PC…')
+        self.test_status.setText('Connecting to PC…')
         self.test_task = Task(lambda task: request(address, token, '/health', timeout=5))
-        self.test_task.success.connect(lambda result: self.test_status.setText('PC connecté · prêt à convertir' if result.get('service') == 'origin-extract' else 'Ce service n’est pas un relais Origin Extract.'))
+        self.test_task.success.connect(lambda result: self.test_status.setText('PC connected · ready to convert' if result.get('service') == 'origin-extract' else 'This service is not an Origin Extract relay.'))
         self.test_task.failure.connect(self.test_status.setText)
         self.test_task.finished.connect(lambda: self.test_button.setEnabled(True))
         self.test_task.start()
@@ -452,10 +452,10 @@ class ConnectionDialog(QDialog):
 
     def done(self, result):
         if self.test_task is not None and self.test_task.isRunning():
-            self.test_status.setText('Attendez la fin du test de connexion…')
+            self.test_status.setText('Waiting for the connection test…')
             return
         if self.network_task is not None and self.network_task.isRunning():
-            self.network_status.setText('Fin de la vérification du réseau…')
+            self.network_status.setText('Finishing the network check…')
             return
         super().done(result)
 
@@ -495,13 +495,13 @@ class LegacyWindow(QMainWindow):
         brand_row.addWidget(label('Origin\nExtract', 'Brand'))
         side.addLayout(brand_row)
         side.addSpacing(36)
-        side.addWidget(label('VOTRE ESPACE', 'SideCaption'))
+        side.addWidget(label('YOUR WORKSPACE', 'SideCaption'))
         side.addSpacing(9)
-        side.addWidget(button('▦   Mes tableaux', lambda: self.pages.setCurrentIndex(1 if self.project else 0), 'SideActive'))
+        side.addWidget(button('▦   My tables', lambda: self.pages.setCurrentIndex(1 if self.project else 0), 'SideActive'))
         side.addWidget(button('↗   Connexion Mac et PC', self.connection, 'SideButton'))
-        side.addWidget(button('?   Guide rapide', self.help, 'SideButton'))
+        side.addWidget(button('?   Quick guide', self.help, 'SideButton'))
         side.addStretch()
-        side.addWidget(label('Le bon format.\nSur le bon ordinateur.', 'SideTitle'))
+        side.addWidget(label('The right format.\nOn your computer.', 'SideTitle'))
         side.addSpacing(9)
         self.mode_label = label(self.default_mode(), 'SideSmall', True)
         side.addWidget(self.mode_label)
@@ -515,11 +515,11 @@ class LegacyWindow(QMainWindow):
         top = QHBoxLayout()
         title_column = QVBoxLayout()
         title_column.setSpacing(5)
-        title_column.addWidget(label('Du projet aux données.', 'Title'))
-        title_column.addWidget(label('Prévisualisez. Choisissez. Exportez.', 'Subtitle'))
+        title_column.addWidget(label('From project to data.', 'Title'))
+        title_column.addWidget(label('Preview. Select. Export.', 'Subtitle'))
         top.addLayout(title_column)
         top.addStretch()
-        self.open_button = button('＋  Ouvrir un projet', self.choose_project)
+        self.open_button = button('＋  Open project', self.choose_project)
         top.addWidget(self.open_button)
         main.addLayout(top)
         self.pages = QStackedWidget()
@@ -531,7 +531,7 @@ class LegacyWindow(QMainWindow):
         line = QHBoxLayout()
         self.activity_label = label('', 'Body')
         line.addWidget(self.activity_label, 1)
-        self.cancel_button = button('Arrêter', self.cancel_task, 'TextButton')
+        self.cancel_button = button('Stop', self.cancel_task, 'TextButton')
         line.addWidget(self.cancel_button)
         activity_layout.addLayout(line)
         self.progress = QProgressBar()
@@ -539,9 +539,9 @@ class LegacyWindow(QMainWindow):
         activity_layout.addWidget(self.progress)
         main.addWidget(self.activity)
         bottom = QHBoxLayout()
-        self.status_label = label('Prêt · glissez un projet dans la fenêtre', 'Subtitle')
+        self.status_label = label('Ready · drop a project into the window', 'Subtitle')
         bottom.addWidget(self.status_label, 1)
-        bottom.addWidget(button('Journal', self.toggle_log, 'TextButton'))
+        bottom.addWidget(button('Log', self.toggle_log, 'TextButton'))
         main.addLayout(bottom)
         self.log = QPlainTextEdit()
         self.log.setReadOnly(True)
@@ -552,7 +552,7 @@ class LegacyWindow(QMainWindow):
         self.update_compact()
 
     def default_mode(self):
-        return 'Windows · conversion locale' if sys.platform == 'win32' else 'Mac · prêt pour les projets portables'
+        return 'Windows · local conversion' if sys.platform == 'win32' else 'Mac · portable projects'
 
     def viewer_path(self):
         stored = self.settings.value('viewer', '')
@@ -570,23 +570,23 @@ class LegacyWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addStretch(1)
         hero, body = card(QVBoxLayout, 'Hero', 42)
-        body.addWidget(label('VOS MESURES, À PORTÉE DE MAIN', 'Eyebrow'))
-        body.addWidget(label('Un projet.\nTous ses tableaux.', 'HeroTitle'))
-        body.addWidget(label('Retrouvez les noms de colonnes, vérifiez vos données et exportez\ntoutes les feuilles en une seule fois. Sur Windows et sur Mac.', 'Body', True))
+        body.addWidget(label('YOUR MEASUREMENTS AT HAND', 'Eyebrow'))
+        body.addWidget(label('One project.\nEvery table.', 'HeroTitle'))
+        body.addWidget(label('View column names, check your data and export\nevery sheet at once. On Windows and Mac.', 'Body', True))
         row = QHBoxLayout()
-        row.addWidget(button('Ouvrir un projet', self.choose_project, 'Primary'))
-        row.addWidget(button('Ouvrir un dossier d’exports', self.choose_folder))
+        row.addWidget(button('Open project', self.choose_project, 'Primary'))
+        row.addWidget(button('Open export folder', self.choose_folder))
         row.addStretch()
         body.addSpacing(12)
         body.addLayout(row)
         body.addSpacing(8)
-        body.addWidget(label('Glissez ici un .opju, un .originpack ou un dossier d’exports.', 'Subtitle'))
+        body.addWidget(label('Drop an .opju, .originpack or export folder here.', 'Subtitle'))
         layout.addWidget(hero)
         sample = ROOT / 'Exemples/from6jun2026_AGH.originpack'
         if sample.exists():
             row = QHBoxLayout()
-            row.addWidget(label('Votre projet Sr327 est déjà prêt pour Mac.', 'Body'))
-            row.addWidget(button('Ouvrir les 19 tableaux  ↗', lambda: self.open_path(sample), 'TextButton'))
+            row.addWidget(label('Your Sr327 project is ready for Mac.', 'Body'))
+            row.addWidget(button('Open 19 tables  ↗', lambda: self.open_path(sample), 'TextButton'))
             row.addStretch()
             layout.addLayout(row)
         layout.addStretch(1)
@@ -605,8 +605,8 @@ class LegacyWindow(QMainWindow):
         self.project_detail = label('', 'Subtitle')
         col.addWidget(self.project_detail)
         source_layout.addLayout(col, 1)
-        source_layout.addWidget(label('Vérifié · SHA256', 'Badge'))
-        self.pack_button = button('Créer un projet pour Mac  ↗', self.save_pack)
+        source_layout.addWidget(label('Verified · SHA256', 'Badge'))
+        self.pack_button = button('Create a portable project  ↗', self.save_pack)
         source_layout.addWidget(self.pack_button)
         layout.addWidget(source)
         self.metrics_widget = QWidget()
@@ -614,7 +614,7 @@ class LegacyWindow(QMainWindow):
         metrics.setContentsMargins(0, 0, 0, 0)
         metrics.setSpacing(13)
         self.metrics = []
-        for caption in ('tableaux disponibles', 'lignes de données', 'feuilles aux noms reconstitués'):
+        for caption in ('available tables', 'data rows', 'sheets with restored names'):
             widget, column = card(QVBoxLayout, 'Metric', 16)
             column.setSpacing(4)
             value = label('—', 'MetricValue')
@@ -629,12 +629,12 @@ class LegacyWindow(QMainWindow):
         collection, left = card(QVBoxLayout, margin=12)
         left.setSpacing(8)
         heading = QHBoxLayout()
-        heading.addWidget(label('Vos tableaux', 'SectionTitle'))
+        heading.addWidget(label('Your tables', 'SectionTitle'))
         heading.addStretch()
-        heading.addWidget(button('Tout / Aucun', self.toggle_selection, 'TextButton'))
+        heading.addWidget(button('All / None', self.toggle_selection, 'TextButton'))
         left.addLayout(heading)
         self.search = QLineEdit()
-        self.search.setPlaceholderText('Rechercher une feuille…')
+        self.search.setPlaceholderText('Find a sheet…')
         self.search.textChanged.connect(self.filter_sheets)
         left.addWidget(self.search)
         self.list = QListWidget()
@@ -668,7 +668,7 @@ class LegacyWindow(QMainWindow):
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         self.table.horizontalHeader().setDefaultSectionSize(112)
         self.table.verticalHeader().setDefaultSectionSize(35)
-        tabs.addTab(self.table, 'Données')
+        tabs.addTab(self.table, 'Data')
         graph = QWidget()
         graph_layout = QVBoxLayout(graph)
         axes = QHBoxLayout()
@@ -683,10 +683,10 @@ class LegacyWindow(QMainWindow):
         graph_layout.addLayout(axes)
         self.plot = Plot()
         graph_layout.addWidget(self.plot, 1)
-        graph_layout.addWidget(label('Aperçu échantillonné si nécessaire · aucun ajustement', 'Subtitle'))
-        tabs.addTab(graph, 'Courbe')
+        graph_layout.addWidget(label('Preview may be sampled · no fitting', 'Subtitle'))
+        tabs.addTab(graph, 'Plot')
         right.addWidget(tabs, 1)
-        self.preview_note = label('Aperçu des 1 000 premières lignes. Toutes les lignes sont exportées.', 'Subtitle')
+        self.preview_note = label('Previewing the first 1,000 rows. Exports include every row.', 'Subtitle')
         self.preview_note.setWordWrap(True)
         right.addWidget(self.preview_note)
         split.addWidget(preview)
@@ -702,26 +702,26 @@ class LegacyWindow(QMainWindow):
         self.extension.setMinimumWidth(76)
         options.addWidget(self.extension)
         self.separator = QComboBox()
-        self.separator.addItem('Tabulations', '\t')
-        self.separator.addItem('Point-virgule', ';')
-        self.separator.addItem('Virgule', ',')
+        self.separator.addItem('Tabs', '\t')
+        self.separator.addItem('Semicolon', ';')
+        self.separator.addItem('Comma', ',')
         options.addWidget(self.separator)
-        self.headers = QCheckBox('En-têtes inclus')
+        self.headers = QCheckBox('Headers included')
         self.headers.setChecked(True)
         options.addWidget(self.headers)
-        self.decimals = QCheckBox('Décimales : point')
+        self.decimals = QCheckBox('Decimal point')
         self.decimals.setChecked(True)
         options.addWidget(self.decimals)
         options.addStretch()
         foot.addWidget(self.options_bar)
         target = QHBoxLayout()
-        self.options_button = button('Réglages · TXT', self.export_settings, 'TextButton')
+        self.options_button = button('Settings · TXT', self.export_settings, 'TextButton')
         target.addWidget(self.options_button)
         self.destination = QLineEdit(self.settings.value('output', str(Path.home() / 'Downloads/Exports_Origin')))
         self.destination.setReadOnly(True)
         target.addWidget(self.destination, 1)
-        target.addWidget(button('Choisir…', self.choose_output))
-        self.export_button = button('Exporter les tableaux  ↗', self.export, 'Primary')
+        target.addWidget(button('Browse…', self.choose_output))
+        self.export_button = button('Export tables  ↗', self.export, 'Primary')
         target.addWidget(self.export_button)
         foot.addLayout(target)
         layout.addWidget(footer)
@@ -737,9 +737,9 @@ class LegacyWindow(QMainWindow):
         if self.project is not None:
             project = self.project
             self.project_detail.setText(
-                f'{len(project.sheets)} tableaux · {project.row_count:,} lignes · '
-                f'{sum(s.reconstructed for s in project.sheets)} feuilles aux noms reconstitués'.replace(',', ' ')
-                if compact else 'Projet portable · disponible hors ligne · valeurs et en-têtes conservés')
+                f'{len(project.sheets)} tables · {project.row_count:,} rows · '
+                f'{sum(s.reconstructed for s in project.sheets)} sheets with restored names'.replace(',', ' ')
+                if compact else 'Portable project · offline · values and headers preserved')
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -747,23 +747,23 @@ class LegacyWindow(QMainWindow):
 
     def export_settings(self):
         dialog = QDialog(self)
-        dialog.setWindowTitle('Réglages de l’export')
+        dialog.setWindowTitle('Export settings')
         dialog.setMinimumWidth(390)
         layout = QVBoxLayout(dialog)
         layout.setContentsMargins(24, 24, 24, 24)
-        layout.addWidget(label('Vos données, au bon format.', 'SectionTitle'))
+        layout.addWidget(label('Your data, your format.', 'SectionTitle'))
         extension, separator = QComboBox(), QComboBox()
         extension.addItems(['TXT', 'CSV'])
         extension.setCurrentIndex(self.extension.currentIndex())
-        separator.addItems(['Tabulations', 'Point-virgule', 'Virgule'])
+        separator.addItems(['Tabs', 'Semicolon', 'Comma'])
         separator.setCurrentIndex(self.separator.currentIndex())
-        headers = QCheckBox('Inclure les noms de colonnes')
+        headers = QCheckBox('Include column names')
         headers.setChecked(self.headers.isChecked())
-        decimals = QCheckBox('Utiliser un point décimal')
+        decimals = QCheckBox('Use decimal point')
         decimals.setChecked(self.decimals.isChecked())
         layout.addWidget(label('Format'))
         layout.addWidget(extension)
-        layout.addWidget(label('Séparateur'))
+        layout.addWidget(label('Separator'))
         layout.addWidget(separator)
         layout.addWidget(headers)
         layout.addWidget(decimals)
@@ -776,7 +776,7 @@ class LegacyWindow(QMainWindow):
             self.separator.setCurrentIndex(separator.currentIndex())
             self.headers.setChecked(headers.isChecked())
             self.decimals.setChecked(decimals.isChecked())
-            self.options_button.setText(f'Réglages · {extension.currentText()}')
+            self.options_button.setText(f'Settings · {extension.currentText()}')
 
     def filter_sheets(self, text):
         for i in range(self.list.count()):
@@ -796,8 +796,8 @@ class LegacyWindow(QMainWindow):
 
     def update_selection(self):
         selected = len(self.checked())
-        self.selection_label.setText(f'{selected} / {self.list.count()} sélectionnés')
-        self.export_button.setText(f'Exporter {selected} tableau{"x" if selected != 1 else ""}  ↗')
+        self.selection_label.setText(f'{selected} / {self.list.count()} selected')
+        self.export_button.setText(f'Export {selected} table{"x" if selected != 1 else ""}  ↗')
         self.export_button.setEnabled(bool(selected) and not self.busy())
 
     def busy(self):
@@ -818,7 +818,7 @@ class LegacyWindow(QMainWindow):
         self.task.progress.connect(self.on_progress)
         self.task.success.connect(success)
         self.task.failure.connect(self.on_error)
-        self.task.stopped.connect(lambda: self.status_label.setText('Opération arrêtée.'))
+        self.task.stopped.connect(lambda: self.status_label.setText('Operation stopped.'))
         self.task.finished.connect(self.finish_task)
         self.task.start()
 
@@ -841,25 +841,25 @@ class LegacyWindow(QMainWindow):
         if self.busy():
             self.task.stop.set()
             self.cancel_button.setEnabled(False)
-            self.activity_label.setText('Arrêt en cours…')
+            self.activity_label.setText('Stopping…')
 
     def on_error(self, message):
-        self.status_label.setText('L’opération n’a pas pu être terminée.')
+        self.status_label.setText('The operation could not be completed.')
         self.log.appendPlainText(message)
         QMessageBox.warning(self, 'Origin Extract', message)
 
     def choose_project(self):
         if self.busy():
             return
-        path, _ = QFileDialog.getOpenFileName(self, 'Ouvrir un projet', str(Path.home() / 'Downloads'),
-                                             'Projets Origin (*.originpack *.opju *.opj)')
+        path, _ = QFileDialog.getOpenFileName(self, 'Open project', str(Path.home() / 'Downloads'),
+                                             'Origin projects (*.originpack *.opju *.opj)')
         if path:
             self.open_path(Path(path))
 
     def choose_folder(self):
         if self.busy():
             return
-        path = QFileDialog.getExistingDirectory(self, 'Ouvrir un dossier d’exports', str(Path.home() / 'Downloads'))
+        path = QFileDialog.getExistingDirectory(self, 'Open export folder', str(Path.home() / 'Downloads'))
         if path:
             self.open_path(Path(path))
 
@@ -868,9 +868,9 @@ class LegacyWindow(QMainWindow):
             return
         path = Path(path)
         if path.is_dir():
-            self.start_task(lambda task: load_export(path, task.stop, task.message.emit), 'Vérification des tableaux…', self.set_project)
+            self.start_task(lambda task: load_export(path, task.stop, task.message.emit), 'Checking tables…', self.set_project)
         elif path.suffix.lower() in ('.originpack', '.zip'):
-            self.start_task(lambda task: load_pack(path, task.stop), 'Ouverture du projet portable…', self.set_project)
+            self.start_task(lambda task: load_pack(path, task.stop), 'Opening portable project…', self.set_project)
         elif path.suffix.lower() in ('.opj', '.opju'):
             if sys.platform == 'win32':
                 viewer = self.viewer_path()
@@ -882,7 +882,7 @@ class LegacyWindow(QMainWindow):
                 def convert(task):
                     with tempfile.TemporaryDirectory(prefix='OriginExtract-local-') as temp:
                         return convert_windows(path, viewer, temp, task.stop, task.message.emit)
-                self.start_task(convert, 'Lecture du projet Origin…', self.set_project)
+                self.start_task(convert, 'Reading Origin project…', self.set_project)
             else:
                 address = self.settings.value('remote/address', '')
                 token = self.settings.value('remote/token', '')
@@ -891,18 +891,18 @@ class LegacyWindow(QMainWindow):
                     address = self.settings.value('remote/address', '')
                     token = self.settings.value('remote/token', '')
                 if not address or not token:
-                    self.status_label.setText('Ouvrez un .originpack pour le mode hors ligne, ou connectez un PC Windows.')
+                    self.status_label.setText('Open an .originpack offline, or connect a Windows PC.')
                     return
                 self.start_task(lambda task: convert_remote(path, address, token, task.stop, task.message.emit),
-                                'Connexion au PC Windows…', self.set_project)
+                                'Connecting to Windows PC…', self.set_project)
         else:
-            QMessageBox.information(self, 'Format non reconnu', 'Choisissez un .originpack, un projet .opju/.opj ou un dossier contenant _rapport.json.')
+            QMessageBox.information(self, 'Unsupported format', 'Choose an .originpack, .opju/.opj project, or a folder containing _rapport.json.')
 
     def set_project(self, project):
         self.project = project
         self.project_title.setText(project.name)
         self.project_title.setToolTip(project.source)
-        self.project_detail.setText('Projet portable · disponible hors ligne · valeurs et en-têtes conservés')
+        self.project_detail.setText('Portable project · offline · values and headers preserved')
         self.update_compact()
         values = [len(project.sheets), project.row_count, sum(s.reconstructed for s in project.sheets)]
         for widget, value in zip(self.metrics, values):
@@ -916,7 +916,7 @@ class LegacyWindow(QMainWindow):
             item.setCheckState(Qt.CheckState.Checked)
             item.setToolTip(sheet.name)
             title = sheet.name if len(sheet.name) <= 43 else sheet.name[:40] + '…'
-            item.setText(f'{title}\n{len(sheet.rows):,} lignes  ·  {len(sheet.headers)} colonnes'.replace(',', ' '))
+            item.setText(f'{title}\n{len(sheet.rows):,} rows  ·  {len(sheet.headers)} columns'.replace(',', ' '))
             item.setData(Qt.ItemDataRole.UserRole, index)
             self.list.addItem(item)
         self.list.blockSignals(False)
@@ -924,27 +924,27 @@ class LegacyWindow(QMainWindow):
         self.list.setCurrentRow(0)
         self.select_sheet(0)
         self.update_selection()
-        self.status_label.setText(f'{len(project.sheets)} tableaux vérifiés · données prêtes à exporter')
+        self.status_label.setText(f'{len(project.sheets)} tables verified · data ready to export')
 
     def select_sheet(self, index):
         if self.project is None or not 0 <= index < len(self.project.sheets):
             return
         sheet = self.project.sheets[index]
         self.sheet_title.setText(sheet.name)
-        self.sheet_detail.setText(f'{len(sheet.rows):,} lignes · {len(sheet.headers)} colonnes'.replace(',', ' '))
+        self.sheet_detail.setText(f'{len(sheet.rows):,} rows · {len(sheet.headers)} columns'.replace(',', ' '))
         missing = sum(c.get('source') == 'Origin column letter' for c in sheet.record.get('column_metadata', []) or [])
         if sheet.reconstructed:
-            self.provenance.setText('Noms reconstitués')
+            self.provenance.setText('Restored names')
             self.provenance.setObjectName('Reconstructed')
         elif missing:
-            self.provenance.setText(f'{missing} nom à préciser')
+            self.provenance.setText(f'{missing} unnamed')
             self.provenance.setObjectName('Reconstructed')
         else:
-            self.provenance.setText('Noms Origin')
+            self.provenance.setText('Origin names')
             self.provenance.setObjectName('BlueBadge')
         self.provenance.style().unpolish(self.provenance)
         self.provenance.style().polish(self.provenance)
-        self.provenance.setToolTip('Les noms reconstitués proviennent de la correspondance confirmée. Les autres noms sont conservés depuis Origin. Les lettres seules signalent un nom encore inconnu.')
+        self.provenance.setToolTip('Restored names use the confirmed mapping. Other names come from Origin. Column letters indicate unknown names.')
         model = TableModel(sheet)
         self.table.setModel(model)
         self.table_model = model
@@ -959,7 +959,7 @@ class LegacyWindow(QMainWindow):
         self.x_axis.blockSignals(False)
         self.y_axis.blockSignals(False)
         self.update_plot()
-        self.preview_note.setText(f'Aperçu : {min(1000, len(sheet.rows)):,} / {len(sheet.rows):,} lignes · valeurs complètes au survol. Export sans arrondi.'.replace(',', ' '))
+        self.preview_note.setText(f'Preview: {min(1000, len(sheet.rows)):,} / {len(sheet.rows):,} rows · hover for full values. No rounding in exports.'.replace(',', ' '))
 
     def update_plot(self):
         index = self.list.currentRow()
@@ -967,7 +967,7 @@ class LegacyWindow(QMainWindow):
             self.plot.set_data(self.project.sheets[index], self.x_axis.currentIndex(), self.y_axis.currentIndex())
 
     def choose_output(self):
-        path = QFileDialog.getExistingDirectory(self, 'Choisir le dossier de destination', self.destination.text())
+        path = QFileDialog.getExistingDirectory(self, 'Choose output folder', self.destination.text())
         if path:
             self.destination.setText(path)
             self.settings.setValue('output', path)
@@ -981,17 +981,17 @@ class LegacyWindow(QMainWindow):
         destination = self.destination.text()
         self.start_task(lambda task: export_project(project, destination, selected, options, task.stop,
                                                     lambda c, t, s: task.progress.emit(c, t, s)),
-                        'Préparation de l’export…', self.exported)
+                        'Preparing export…', self.exported)
 
     def exported(self, folder):
         self.last_output = Path(folder)
-        self.status_label.setText(f'Export terminé · {folder}')
+        self.status_label.setText(f'Export complete · {folder}')
         dialog = QMessageBox(self)
-        dialog.setWindowTitle('Export terminé')
-        dialog.setText('Vos tableaux sont prêts.')
+        dialog.setWindowTitle('Export complete')
+        dialog.setText('Your tables are ready.')
         dialog.setInformativeText(str(folder))
-        open_button = dialog.addButton('Ouvrir le dossier', QMessageBox.ButtonRole.AcceptRole)
-        dialog.addButton('Fermer', QMessageBox.ButtonRole.RejectRole)
+        open_button = dialog.addButton('Open folder', QMessageBox.ButtonRole.AcceptRole)
+        dialog.addButton('Close', QMessageBox.ButtonRole.RejectRole)
         dialog.exec()
         if dialog.clickedButton() == open_button:
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder)))
@@ -1001,17 +1001,17 @@ class LegacyWindow(QMainWindow):
             return
         selected = self.checked()
         if not selected:
-            QMessageBox.information(self, 'Aucun tableau sélectionné', 'Sélectionnez les tableaux à partager.')
+            QMessageBox.information(self, 'No tables selected', 'Select the tables to share.')
             return
-        path, _ = QFileDialog.getSaveFileName(self, 'Créer un projet portable',
+        path, _ = QFileDialog.getSaveFileName(self, 'Create portable project',
                                              str(Path.home() / 'Downloads' / (self.project.name + '.originpack')),
-                                             'Projet portable (*.originpack)')
+                                             'Portable project (*.originpack)')
         if path:
             if not path.lower().endswith('.originpack'):
                 path += '.originpack'
             project = replace(self.project, sheets=[self.project.sheets[i] for i in selected])
-            self.start_task(lambda task: write_pack(project, path, task.stop), 'Création du projet pour Mac…',
-                            lambda result: self.status_label.setText(f'Projet portable créé · {result}'))
+            self.start_task(lambda task: write_pack(project, path, task.stop), 'Creating portable project…',
+                            lambda result: self.status_label.setText(f'Portable project saved · {result}'))
 
     def connection(self):
         ConnectionDialog(self).exec()
@@ -1020,15 +1020,8 @@ class LegacyWindow(QMainWindow):
         self.log.setVisible(not self.log.isVisible())
 
     def help(self):
-        QMessageBox.information(self, 'Guide rapide',
-            '1. Ouvrez un .opju sur Windows, ou un .originpack sur Mac et Windows.\n\n'
-            '2. Cochez les tableaux, vérifiez les colonnes et l’aperçu des courbes.\n\n'
-            '3. Exportez vers un nouveau dossier : les en-têtes sont inclus par défaut.\n\n'
-            'POUR LE MAC\nCréez un projet pour Mac depuis Windows et transférez le .originpack. '
-            'Il fonctionne ensuite hors ligne, sans Origin Viewer.\n\n'
-            'Pour de nouveaux .opju directement depuis le Mac : démarrez le relais Windows '
-            'et renseignez son adresse et sa clé dans Connexion Mac et PC. Le PC doit rester allumé.\n\n'
-            'Les noms reconstitués sont indiqués dans l’interface et dans le rapport d’export.')
+        guide = ROOT / 'GUIDE_WINDOWS_MAC.txt'
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(guide)))
 
     def dragEnterEvent(self, event):
         if not self.busy() and event.mimeData().hasUrls() and event.mimeData().urls()[0].isLocalFile():
@@ -1043,14 +1036,14 @@ class LegacyWindow(QMainWindow):
     def closeEvent(self, event):
         if self.busy():
             self.cancel_task()
-            self.status_label.setText('Arrêt demandé. Attendez la fin avant de fermer la fenêtre.')
+            self.status_label.setText('Stop requested. Wait for the operation to finish before closing.')
             event.ignore()
             return
         if self.bridge is not None:
             with self.bridge.lock:
                 running = any(j.state in ('en_attente', 'conversion') for j in self.bridge.jobs.values())
             if running:
-                QMessageBox.information(self, 'Conversion du Mac en cours', 'Attendez la fin de la conversion avant de fermer ce PC.')
+                QMessageBox.information(self, 'Mac conversion in progress', 'Wait for the conversion to finish before closing this PC.')
                 event.ignore()
                 return
             self.bridge.close()
@@ -1136,19 +1129,19 @@ class Window(LegacyWindow):
         top.addWidget(logo)
         top.addWidget(label('origin extract', 'Brand'))
         top.addStretch()
-        self.open_button = button('＋  Ouvrir', self.choose_project)
+        self.open_button = button('＋  Open', self.choose_project)
         top.addWidget(self.open_button)
         more = button('···', name='IconButton')
         menu = QMenu(more)
-        menu.addAction('Ouvrir un dossier', self.choose_folder)
-        self.pack_button = menu.addAction('Partager un .originpack', self.save_pack)
+        menu.addAction('Open folder', self.choose_folder)
+        self.pack_button = menu.addAction('Share .originpack', self.save_pack)
         self.pack_button.setEnabled(False)
         menu.addSeparator()
         menu.addAction('Mac ↔ PC', self.connection)
-        menu.addAction('Journal', self.toggle_log)
+        menu.addAction('Log', self.toggle_log)
         menu.addAction('Guide', self.help)
         menu.addSeparator()
-        menu.addAction('À propos', self.about)
+        menu.addAction('About', self.about)
         more.setMenu(menu)
         top.addWidget(more)
         layout.addLayout(top)
@@ -1178,13 +1171,13 @@ class Window(LegacyWindow):
         layout.addWidget(self.log)
         bottom = QHBoxLayout()
         author = label(__author__, 'Author')
-        author.setToolTip('Auteur de l’application')
+        author.setToolTip('Application author')
         bottom.addWidget(author)
         bottom.addStretch()
-        self.status_label = label('Prêt', 'Subtitle')
+        self.status_label = label('Ready', 'Subtitle')
         self.status_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         bottom.addWidget(self.status_label, 1)
-        self.last_output_button = button('Ouvrir le dossier', self.open_output, 'TextButton')
+        self.last_output_button = button('Open folder', self.open_output, 'TextButton')
         self.last_output_button.hide()
         bottom.addWidget(self.last_output_button)
         self.mode_label = label(self.default_mode(), 'Subtitle')
@@ -1204,7 +1197,7 @@ class Window(LegacyWindow):
         icon.setPixmap(app_icon().pixmap(62, 62))
         icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         center.addWidget(icon)
-        text = label('Glisser un projet', 'Title')
+        text = label('Drop a project', 'Title')
         text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         center.addWidget(text)
         text = label('.opju  ·  .originpack', 'Subtitle')
@@ -1212,7 +1205,7 @@ class Window(LegacyWindow):
         center.addWidget(text)
         row = QHBoxLayout()
         row.addStretch()
-        row.addWidget(button('Choisir un fichier', self.choose_project, 'Primary'))
+        row.addWidget(button('Choose file', self.choose_project, 'Primary'))
         row.addStretch()
         center.addLayout(row)
         center.addStretch()
@@ -1237,14 +1230,14 @@ class Window(LegacyWindow):
         collection, left = card(QVBoxLayout, margin=10)
         left.setSpacing(7)
         heading = QHBoxLayout()
-        heading.addWidget(label('Feuilles', 'SectionTitle'))
+        heading.addWidget(label('Sheets', 'SectionTitle'))
         heading.addStretch()
         self.selection_label = label('', 'Subtitle')
         heading.addWidget(self.selection_label)
         heading.addWidget(button('☑', self.toggle_selection, 'TextButton'))
         left.addLayout(heading)
         self.search = QLineEdit()
-        self.search.setPlaceholderText('Filtrer…')
+        self.search.setPlaceholderText('Filter…')
         self.search.textChanged.connect(self.filter_sheets)
         left.addWidget(self.search)
         self.list = QListWidget()
@@ -1275,7 +1268,7 @@ class Window(LegacyWindow):
         self.table.horizontalHeader().setDefaultSectionSize(78)
         self.table.verticalHeader().setDefaultSectionSize(27)
         self.table.verticalHeader().setDefaultAlignment(Qt.AlignmentFlag.AlignCenter)
-        tabs.addTab(self.table, 'Données')
+        tabs.addTab(self.table, 'Data')
         graph = QWidget()
         graph_layout = QVBoxLayout(graph)
         graph_layout.setContentsMargins(0, 5, 0, 0)
@@ -1292,7 +1285,7 @@ class Window(LegacyWindow):
         self.plot = Plot()
         self.plot.setMinimumHeight(145)
         graph_layout.addWidget(self.plot, 1)
-        tabs.addTab(graph, 'Courbe')
+        tabs.addTab(graph, 'Plot')
         right.addWidget(tabs, 1)
         self.preview_note = label('', 'Subtitle')
         right.addWidget(self.preview_note)
@@ -1308,13 +1301,13 @@ class Window(LegacyWindow):
         self.destination_button.setToolTip(self.destination.text())
         footer.addWidget(self.destination_button)
         footer.addStretch()
-        self.export_button = button('Exporter', self.export, 'Primary')
+        self.export_button = button('Export', self.export, 'Primary')
         self.export_button.setMinimumWidth(135)
         footer.addWidget(self.export_button)
         outer.addLayout(footer)
         self.extension, self.separator = QComboBox(self), QComboBox(self)
         self.extension.addItems(['TXT', 'CSV'])
-        for text, value in [('Tabulations', '\t'), ('Point-virgule', ';'), ('Virgule', ',')]:
+        for text, value in [('Tabs', '\t'), ('Semicolon', ';'), ('Comma', ',')]:
             self.separator.addItem(text, value)
         self.headers = QCheckBox(self)
         self.headers.setChecked(True)
@@ -1356,15 +1349,15 @@ class Window(LegacyWindow):
         self.list.blockSignals(False)
         self.search.blockSignals(False)
         self.pages.setCurrentIndex(1)
-        self.project_detail.setText(f'{len(project.sheets)} feuilles · {project.row_count:,} lignes'.replace(',', ' '))
+        self.project_detail.setText(f'{len(project.sheets)} sheets · {project.row_count:,} rows'.replace(',', ' '))
         self.elide(self.project_title, project.name)
         self.list.setCurrentRow(0)
         self.select_sheet(0)
         self.update_selection()
-        self.status_label.setText('Prêt' if not project.warnings else f'{len(project.warnings)} avertissement(s) · journal')
+        self.status_label.setText('Ready' if not project.warnings else f'{len(project.warnings)} warning(s) · log')
         ignored = [item for item in project.skipped if item.get('type') in ('AnalysisReport', 'EmbeddedGraphSheet', 'EmptySheet', 'NonDataSheet')]
         if ignored:
-            self.log.appendPlainText(f'{len(ignored)} feuille(s) sans tableau exportable ignorée(s). Détails dans _rapport.json.')
+            self.log.appendPlainText(f'{len(ignored)} non-tabular sheet(s) skipped. See _rapport.json for details.')
         for warning in project.warnings:
             self.log.appendPlainText(f"{warning.get('book', '')}/{warning.get('sheet', '')} : {warning.get('reason', '')}")
         QTimer.singleShot(50, lambda: self.elide(self.project_title, self.project.name) if self.project else None)
@@ -1374,11 +1367,11 @@ class Window(LegacyWindow):
             return
         sheet = self.project.sheets[index]
         self.elide(self.sheet_title, sheet.name)
-        self.sheet_detail.setText(f'{len(sheet.rows):,} lignes · {len(sheet.headers)} colonnes'.replace(',', ' '))
+        self.sheet_detail.setText(f'{len(sheet.rows):,} rows · {len(sheet.headers)} columns'.replace(',', ' '))
         missing = sum(not c.get('name') and not c.get('reconstructed_name') for c in sheet.record.get('column_metadata', []) or [])
         self.provenance.setObjectName('Reconstructed' if sheet.reconstructed or missing else 'BlueBadge')
-        self.provenance.setText('Reconstitué' if sheet.reconstructed else f'{missing} à nommer' if missing else 'Origin')
-        self.provenance.setToolTip('Noms reconstitués selon la correspondance confirmée.' if sheet.reconstructed else 'Noms conservés depuis Origin.' if not missing else 'Une lettre seule indique un nom encore inconnu.')
+        self.provenance.setText('Restored' if sheet.reconstructed else f'{missing} unnamed' if missing else 'Origin')
+        self.provenance.setToolTip('Column names restored using the confirmed mapping.' if sheet.reconstructed else 'Original column names from Origin.' if not missing else 'A column letter means the name is unknown.')
         self.provenance.style().unpolish(self.provenance)
         self.provenance.style().polish(self.provenance)
         self.table_model = TableModel(sheet)
@@ -1392,13 +1385,13 @@ class Window(LegacyWindow):
         for combo in (self.x_axis, self.y_axis):
             combo.blockSignals(False)
         self.update_plot()
-        self.preview_note.setText(f'{min(1000, len(sheet.rows)):,} lignes affichées · export intégral'.replace(',', ' '))
-        self.preview_note.setToolTip('Valeurs complètes au survol. Aucun arrondi dans les exports.')
+        self.preview_note.setText(f'{min(1000, len(sheet.rows)):,} rows shown · full export'.replace(',', ' '))
+        self.preview_note.setToolTip('Hover for full values. Exports preserve full precision.')
 
     def update_selection(self):
         count = len(self.checked())
         self.selection_label.setText(f'{count}/{self.list.count()}')
-        self.export_button.setText(f'Exporter ({count})')
+        self.export_button.setText(f'Export ({count})')
         self.export_button.setEnabled(bool(count) and not self.busy())
 
     def on_log(self, message):
@@ -1406,7 +1399,7 @@ class Window(LegacyWindow):
         self.elide(self.activity_label, message)
 
     def on_error(self, message):
-        self.status_label.setText('Échec de l’opération')
+        self.status_label.setText('Operation failed')
         self.log.appendPlainText(message)
         QMessageBox.warning(self, 'Origin Extract', message)
 
@@ -1425,14 +1418,14 @@ class Window(LegacyWindow):
         extension, separator = QComboBox(), QComboBox()
         extension.addItems(['TXT', 'CSV'])
         extension.setCurrentIndex(self.extension.currentIndex())
-        separator.addItems(['Tabulations', 'Point-virgule', 'Virgule'])
+        separator.addItems(['Tabs', 'Semicolon', 'Comma'])
         separator.setCurrentIndex(self.separator.currentIndex())
         row.addWidget(extension)
         row.addWidget(separator, 1)
         form.addLayout(row)
-        headers = QCheckBox('Noms de colonnes')
+        headers = QCheckBox('Column names')
         headers.setChecked(self.headers.isChecked())
-        decimals = QCheckBox('Point décimal')
+        decimals = QCheckBox('Decimal point')
         decimals.setChecked(self.decimals.isChecked())
         form.addWidget(headers)
         form.addWidget(decimals)
@@ -1446,12 +1439,12 @@ class Window(LegacyWindow):
             self.headers.setChecked(headers.isChecked())
             self.decimals.setChecked(decimals.isChecked())
             self.options_button.setText(f'{extension.currentText()} · ' + ['TAB', ';', ','][separator.currentIndex()])
-            self.options_button.setToolTip('En-têtes inclus' if headers.isChecked() else 'Sans en-têtes')
+            self.options_button.setToolTip('Headers included' if headers.isChecked() else 'Without headers')
 
     def exported(self, folder):
         self.last_output = Path(folder)
         self.last_output_button.show()
-        self.status_label.setText('Export terminé')
+        self.status_label.setText('Export complete')
         self.status_label.setToolTip(str(folder))
 
     def open_output(self):
@@ -1460,15 +1453,15 @@ class Window(LegacyWindow):
 
     def about(self):
         dialog = QDialog(self)
-        dialog.setWindowTitle('À propos')
+        dialog.setWindowTitle('About')
         dialog.setFixedWidth(330)
         form = QVBoxLayout(dialog)
         form.setContentsMargins(22, 22, 22, 22)
         form.addWidget(label('origin extract', 'Brand'))
-        form.addWidget(label(f'Créé par {__author__}', 'SectionTitle'))
+        form.addWidget(label(f'Created by {__author__}', 'SectionTitle'))
         form.addWidget(label(f'Version {__version__} · © {__author__}', 'Subtitle'))
         form.addSpacing(12)
-        form.addWidget(button('Fermer', dialog.accept))
+        form.addWidget(button('Close', dialog.accept))
         dialog.exec()
 
     def help(self):

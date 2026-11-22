@@ -41,13 +41,13 @@ $profiles=@(Get-NetConnectionProfile | Select-Object Name,@{Name='Category';Expr
 
 def firewall_message(status):
     if status.get('unavailable'):
-        return 'Diagnostic indisponible. Ouvrez le pare-feu pour vérifier les autorisations.'
+        return 'Diagnostics unavailable. Open Firewall to check permissions.'
     if status.get('rules'):
-        return 'Windows bloque ce programme. Ouvrez le pare-feu pour le réautoriser.'
+        return 'Windows is blocking this program. Open Firewall to allow it again.'
     profiles = status.get('profiles', [])
     if profiles and all(item.get('Category') == 0 for item in profiles):
-        return 'Réseau public : utilisez un réseau privé de confiance ou Tailscale.'
-    return 'Le Mac doit joindre cette adresse. Un test local ne vérifie pas le pare-feu.'
+        return 'Public network: use a trusted private network or Tailscale.'
+    return 'Your Mac must reach this address. A local test does not check the firewall.'
 
 
 def open_firewall_settings():

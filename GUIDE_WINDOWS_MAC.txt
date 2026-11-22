@@ -1,74 +1,74 @@
-ORIGIN EXTRACT 2.1.1
-Auteur : Amir MEDDAS
+ORIGIN EXTRACT 2.1.2
+Created by Amir MEDDAS
 
-INSTALLER
-Windows : lancer le fichier OriginExtract-2.1.1-Windows-x64-Setup.exe.
-Mac M1/M2/M3/M4 ou plus recent : ouvrir le DMG arm64 et glisser Origin Extract
-sur Applications. Pour un Mac Intel, choisir le DMG x86_64.
-Python et les dependances sont inclus dans ces distributions.
+INSTALL
+Windows: run OriginExtract-2.1.2-Windows-x64-Setup.exe.
+Mac Apple Silicon: open the arm64 DMG and drag Origin Extract to Applications.
+Mac Intel: use the x86_64 DMG. Requires macOS 12 or later.
+Python and dependencies are bundled with these distributions.
+The builds are unsigned and not notarized. A provenance warning or execution
+block is possible. Author metadata is not a verified digital signature.
 
-Les builds actuels ne sont pas signes avec un certificat Windows ou un
-Developer ID Apple, ni notarises. Un avertissement de provenance est donc
-possible. La mention Amir MEDDAS identifie l'auteur, pas une signature verifiee.
+EXPORT
+Open a project, select sheets and click Export.
+Use TXT / TAB to set TXT/CSV, separator, headers and decimal notation.
+Destination chooses the output folder. Every export creates a new folder;
+existing exports are never overwritten.
+Preview values may be shortened. Hover for full values; exports preserve
+full precision. Search filters the list without deselecting hidden sheets.
+Plots are previews and may be sampled. No fitting is applied.
 
-EXPORTER
-Ouvrir un projet, cocher les feuilles, cliquer sur Exporter.
-TXT/CSV, separateur et en-tetes se reglent avec le bouton TXT · TAB.
-Le bouton Destination choisit le dossier de sortie. Chaque export cree un
-nouveau dossier ; aucun fichier existant n'est ecrase.
+MAC OFFLINE
+An .originpack contains tables, metadata and integrity hashes.
+It opens and re-exports without Origin Viewer or a connected PC.
+Create it on Windows: open the project, then ... > Share .originpack.
+Transfer the resulting file to your Mac.
 
-Les nombres peuvent etre raccourcis uniquement dans l'apercu. Leur valeur
-complete apparait au survol et les exports conservent leur precision.
-La recherche filtre la liste sans decocher les feuilles masquees.
-Les courbes sont des apercus, eventuellement echantillonnes, sans ajustement.
+NEW .OPJU FROM MAC
+Raw .opju files are converted on a Windows PC with Origin Viewer.
+PC: ... > Mac / PC > My Windows PC > Start relay on this PC.
+Copy one PC address and the connection key shown below it.
+Mac: ... > Mac / PC > My Mac. Paste the address and key, then Test connection
+and Save. Open the .opju on the Mac; the PC converts it and returns the tables.
+Keep the PC on, its session open, and the relay running.
 
-MAC HORS LIGNE
-Un .originpack contient les tableaux, leurs metadonnees et leurs empreintes.
-Il s'ouvre et se reexporte sans Origin Viewer et sans PC connecte.
-Pour en creer un depuis Windows : ouvrir le projet, puis menu ... > Partager
-un .originpack. Le fichier peut ensuite etre transfere au Mac.
+BROWSER TEST
+Opening the PC address in a browser shows "Relay is running" with instructions.
+The browser sends no connection key. This page only confirms that the relay
+is reachable from that device. A test on the PC does not prove the Mac can
+reach it. Use Test connection in the Mac app to verify the address AND key.
+Protected requests distinguish "Connection key required" from "Incorrect
+connection key". Copy the current key from the PC if the Mac reports an error.
 
-NOUVEAU .OPJU DEPUIS LE MAC
-Le .opju brut est converti sur un PC Windows possedant Origin Viewer.
-Sur le PC : menu ... > Mac/PC > Mon PC Windows > Demarrer le relais.
-Sur le Mac : recopier l'adresse et la cle dans Mon Mac, tester et enregistrer.
-Ouvrir ensuite le .opju sur le Mac : le PC le convertit et renvoie les tableaux.
-Le PC doit rester allume, sa session ouverte et le relais actif.
+WINDOWS PERMISSION WAS DENIED
+PC: ... > Mac / PC > My Windows PC > Firewall.
+In Windows Firewall, choose Change settings and allow OriginExtract.exe on
+Private networks. Source launchers use pythonw.exe or python.exe instead.
+Windows can retain a blocking rule after a denied request without asking
+again. Check again only reads the rules; it does not change permissions.
+Use a trusted private network or Tailscale. Public university networks may
+isolate devices even when the firewall allows the program.
 
-AUTORISATION WINDOWS REFUSEE
-Dans Mac/PC > Mon PC Windows, cliquer Pare-feu. Dans la fenetre Windows :
-Modifier les parametres, puis autoriser OriginExtract.exe sur le reseau Prive.
-Avec la version source, l'entree s'appelle pythonw.exe ou python.exe.
-Apres un refus, Windows peut conserver une regle bloquante sans redemander.
-Le bouton Reverifier relit les regles ; il ne change aucune autorisation.
-Utiliser un reseau prive de confiance ou Tailscale. Les reseaux universitaires
-publics peuvent isoler les appareils, meme apres autorisation du pare-feu.
-Copier une seule adresse depuis la liste. Un relais actif sur le PC ne prouve
-pas que le Mac peut le joindre : tester depuis le Mac avec l'adresse et la cle.
+The relay uses HTTP and an access key on TCP port 8765. It starts manually
+and does not modify the firewall. It is not an encrypted Internet service.
+No cloud service receives your projects. While converting, avoid interacting
+with Origin Viewer or copying text: the converter uses the PC clipboard.
+The initial text is restored when possible; other clipboard formats are not.
+Concurrent conversions wait for each other to avoid clipboard conflicts.
 
-Le relais utilise HTTP avec une cle d'acces sur le reseau local, port TCP 8765.
-Il ne demarre pas automatiquement et ne modifie pas le pare-feu. Ce n'est pas
-un service Internet chiffre. Aucun service cloud ne recoit les projets.
-Pendant une conversion, eviter de manipuler le Viewer ou de copier du texte
-sur le PC : le moteur utilise son presse-papiers. Le texte initial est restaure
-si possible ; les autres formats du presse-papiers ne sont pas restaures.
+COLUMN NAMES AND EXCLUSIONS
+Original names, units and scientific text retain their original language.
+Confirmed name mappings are marked Restored and only apply to the exact
+source project. A column letter indicates an unknown name.
+If metadata cannot be read, column letters are kept and a warning is recorded.
+Graphs, embedded graph sheets, analysis reports, layouts and matrices are
+not exported as data tables. Exclusions appear in _rapport.json.
+Complex FFT values keep their full precision. Viewer restrictions still apply.
+The source project is unchanged. On conversion failure, the error message
+points to a local log under AppData/Local/OriginExtract/Logs on Windows.
 
-NOMS DE COLONNES
-Les noms Origin sont conserves. Les correspondances confirmees sont signalees
-Reconstitue et limitees au projet exact. Une lettre seule indique un nom encore
-inconnu. Les unites ne sont ajoutees que si elles existent dans les metadonnees.
-Les graphiques, feuilles de graphes integres, rapports d'analyse, mises en page
-et matrices ne sont pas convertis en tableaux. Les exclusions figurent dans
-_rapport.json. Les colonnes FFT complexes conservent leurs valeurs.
-Si les noms de colonnes sont illisibles, les lettres sont conservees avec un
-avertissement dans le journal et le rapport, plutot que d'inventer des noms.
-En cas d'echec, un journal de conversion reste disponible localement dans
-AppData/Local/OriginExtract/Logs ; son chemin figure dans le message d'erreur.
-Les restrictions du Viewer restent applicables. Le projet source reste intact.
-
-FABRICATION AUTOMATIQUE
-Le workflow GitHub Installateurs fabrique Windows x64, Mac Apple Silicon et
-Mac Intel. Les controles incluent les tests fonctionnels, le demarrage du
-binaire, l'installation silencieuse sous Windows et la verification du DMG.
-Les artefacts ne contiennent pas les fichiers scientifiques de l'auteur.
-Les polices et bibliotheques tierces sont creditees dans CREDITS.txt.
+AUTOMATIC BUILDS
+The GitHub Installateurs workflow builds Windows x64, Mac Apple Silicon and
+Mac Intel. Checks cover functional tests, executable startup, silent Windows
+installation and DMG integrity. The artifacts contain no scientific projects.
+See CREDITS.txt for third-party fonts and libraries.

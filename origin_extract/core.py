@@ -26,7 +26,7 @@ class Cancelled(Exception):
 
 def check_cancel(stop):
     if stop is not None and stop.is_set():
-        raise Cancelled("Opération arrêtée. Les fichiers déjà présents sont conservés.")
+        raise Cancelled("Operation stopped. Existing files have been kept.")
 
 
 def digest(data):
@@ -51,10 +51,10 @@ def column_letter(index):
 def relative_path(value):
     # Les packs utilisent exclusivement des chemins relatifs POSIX.
     if '\\' in value or ':' in value:
-        raise ValueError('Chemin de tableau invalide dans le projet portable.')
+        raise ValueError('Invalid table path in the portable project.')
     path = PurePosixPath(value)
     if path.is_absolute() or not path.parts or any(p in ('..', '.') for p in path.parts):
-        raise ValueError('Chemin de tableau invalide dans le projet portable.')
+        raise ValueError('Invalid table path in the portable project.')
     return path
 
 
@@ -90,20 +90,20 @@ class Project:
 
 def decode_sheet(record, raw, header_lines=1, separator='\t', decimal_comma=False):
     if len(raw) > MAX_SHEET_BYTES:
-        raise ValueError('Ce tableau dépasse la taille maximale de 256 Mo.')
+        raise ValueError('This table exceeds the 256 MB limit.')
     if record.get('sha256') and digest(raw) != record['sha256']:
-        raise ValueError(f"Le fichier {record.get('sheet', '')} a été modifié ou est incomplet (SHA256).")
+        raise ValueError(f"The file {record.get('sheet', '')} has changed or is incomplete (SHA256).")
     if separator not in ('\t', ';', ','):
-        raise ValueError('Séparateur du tableau non pris en charge.')
+        raise ValueError('Unsupported table separator.')
     parsed = list(csv.reader(io.StringIO(raw.decode('utf-8-sig'), newline=''), delimiter=separator))
     count = record.get('columns')
     if not isinstance(count, int) or not 1 <= count <= 100000:
-        raise ValueError('Nombre de colonnes invalide.')
+        raise ValueError('Invalid column count.')
     if header_lines not in (0, 1):
-        raise ValueError("Nombre de lignes d'en-tête non pris en charge.")
+        raise ValueError("Unsupported header row count.")
     if header_lines:
         if not parsed:
-            raise ValueError('Le tableau est vide.')
+            raise ValueError('The table is empty.')
         headers, rows = parsed[0], parsed[1:]
     else:
         metadata = record.get('column_metadata') or []
@@ -111,9 +111,9 @@ def decode_sheet(record, raw, header_lines=1, separator='\t', decimal_comma=Fals
                    for i in range(count)]
         rows = parsed
     if len(headers) != count or any(len(row) != count for row in rows):
-        raise ValueError(f"Colonnes incohérentes dans {record.get('sheet', 'le tableau')}.")
+        raise ValueError(f"Inconsistent columns in {record.get('sheet', 'the table')}.")
     if len(rows) != record.get('rows'):
-        raise ValueError(f"Nombre de lignes incohérent dans {record.get('sheet', 'le tableau')}.")
+        raise ValueError(f"Inconsistent row count in {record.get('sheet', 'the table')}.")
     if decimal_comma:
         rows = [[decimal_text(v, True) for v in row] for row in rows]
     if not header_lines or separator != '\t' or decimal_comma:
@@ -132,7 +132,7 @@ def load_export(folder, stop=None, log=lambda message: None):
     report = json.loads((folder / '_rapport.json').read_text(encoding='utf-8'))
     records = report.get('sheets', [])
     if not records:
-        raise ValueError('Ce dossier ne contient aucun tableau exporté.')
+        raise ValueError('This folder contains no exported tables.')
     sheets = []
     for item in records:
         check_cancel(stop)
@@ -143,13 +143,13 @@ def load_export(folder, stop=None, log=lambda message: None):
             # Prendre en compte un dossier renommé, sans jamais suivre un chemin hors du projet.
             candidates = list(folder.rglob(rel.name))
             if len(candidates) != 1:
-                raise ValueError(f'Tableau introuvable ou ambigu : {rel.name}')
+                raise ValueError(f'Missing or ambiguous table: {rel.name}')
             path = candidates[0]
         if not path.resolve().is_relative_to(folder):
-            raise ValueError('Un tableau se trouve en dehors du dossier du projet.')
+            raise ValueError('A table is outside the project folder.')
         sheets.append(decode_sheet(item, path.read_bytes(), report.get('header_lines', 0),
                                    report.get('separator', '\t'), report.get('decimals') == 'virgule'))
-        log(f"Vérifié : {item.get('sheet', rel.name)}")
+        log(f"Checked: {item.get('sheet', rel.name)}")
     source = Path(report.get('project') or folder.name)
     source_hash = digest(source.read_bytes()) if source.is_file() else report.get('source_sha256', '')
     name = Path(re.split(r'[/\\]', str(source))[-1]).stem
@@ -176,7 +176,7 @@ def pack_bytes(project, stop=None):
 def write_pack(project, destination, stop=None):
     destination = Path(destination)
     if destination.exists():
-        raise FileExistsError('Ce projet portable existe déjà. Choisissez un autre nom.')
+        raise FileExistsError('This portable project already exists. Choose another name.')
     data = pack_bytes(project, stop)
     check_cancel(stop)
     with destination.open('xb') as stream:
@@ -189,23 +189,23 @@ def load_pack(source, stop=None):
     with zipfile.ZipFile(stream) as archive:
         entries = archive.infolist()
         if len(entries) > 50000 or sum(i.file_size for i in entries) > MAX_PACK_BYTES:
-            raise ValueError('Le projet portable dépasse la taille maximale autorisée.')
+            raise ValueError('The portable project exceeds the size limit.')
         if len({i.filename for i in entries}) != len(entries):
-            raise ValueError('Le projet portable contient des noms de fichiers en double.')
+            raise ValueError('The portable project contains duplicate filenames.')
         if 'manifest.json' not in archive.namelist() or archive.getinfo('manifest.json').file_size > 5 * 1024 * 1024:
-            raise ValueError('Le fichier ne contient pas de manifeste Origin Extract valide.')
+            raise ValueError('The file does not contain a valid Origin Extract manifest.')
         manifest = json.loads(archive.read('manifest.json').decode('utf-8'))
         if manifest.get('format') != PACK_FORMAT or manifest.get('header_lines') != 1:
-            raise ValueError('Version de projet portable non prise en charge.')
+            raise ValueError('Unsupported portable project version.')
         records = manifest.get('sheets')
         if not isinstance(records, list) or not records:
-            raise ValueError('Le projet ne contient aucun tableau.')
+            raise ValueError('The project contains no tables.')
         sheets = []
         for record in records:
             check_cancel(stop)
             name = str(relative_path(record['file']))
             if archive.getinfo(name).file_size > MAX_SHEET_BYTES:
-                raise ValueError('Un tableau dépasse la taille maximale autorisée.')
+                raise ValueError('A table exceeds the size limit.')
             sheets.append(decode_sheet(record, archive.read(name), 1))
     return Project(str(manifest.get('name') or 'Projet'), str(manifest.get('source_sha256') or ''),
                    sheets, manifest.get('skipped', []), '' if isinstance(source, bytes) else str(source),
@@ -244,10 +244,10 @@ def export_project(project, destination, selected=None, options=None, stop=None,
                    progress=lambda current, total, message: None):
     options = options or ExportOptions()
     if options.extension not in ('txt', 'csv') or options.separator not in ('\t', ';', ','):
-        raise ValueError("Format d'export invalide.")
+        raise ValueError("Invalid export format.")
     indices = list(range(len(project.sheets))) if selected is None else sorted(set(selected))
     if not indices or any(i < 0 or i >= len(project.sheets) for i in indices):
-        raise ValueError('Sélectionnez au moins un tableau.')
+        raise ValueError('Select at least one table.')
     base = Path(destination).resolve()
     base.mkdir(parents=True, exist_ok=True)
     check_cancel(stop)
@@ -297,7 +297,7 @@ def export_project(project, destination, selected=None, options=None, stop=None,
     except Exception:
         # Le dossier n'est jamais présenté comme un export terminé ; on conserve
         # le partiel pour inspection au lieu de supprimer des fichiers.
-        (staging / '_interrompu.txt').write_text('Export interrompu ou incomplet.', encoding='utf-8')
+        (staging / '_interrompu.txt').write_text('Export interrupted or incomplete.', encoding='utf-8')
         raise
 
 
@@ -305,7 +305,7 @@ def convert_windows(project, viewer, destination, stop=None, log=lambda message:
     """Isoler l'automatisation Windows du fil Qt et du relais HTTP."""
     import sys
     if sys.platform != 'win32':
-        raise RuntimeError('La conversion OPJU utilise le relais Windows. Ouvrez un .originpack pour travailler hors ligne.')
+        raise RuntimeError('OPJU conversion requires the Windows relay. Open an .originpack to work offline.')
     import os
     import subprocess
     root = Path(__file__).resolve().parents[1]
@@ -348,16 +348,16 @@ def convert_windows(project, viewer, destination, stop=None, log=lambda message:
     read_log(final=True)
     check_cancel(stop)
     if process.returncode:
-        message = failure or 'La conversion Windows a échoué.'
+        message = failure or 'Windows conversion failed.'
         try:
             from .diagnostics import save_conversion_log
             diagnostic = save_conversion_log(log_path.read_bytes() if log_path.exists() else message.encode('utf-8'))
-            message += f'\nJournal : {diagnostic}'
+            message += f'\nLog: {diagnostic}'
         except OSError:
             pass
         raise RuntimeError(message)
     reports = list(destination.glob('*/_rapport.json'))
     complete = [r for r in reports if json.loads(r.read_text(encoding='utf-8')).get('status') == 'terminé']
     if len(complete) != 1:
-        raise RuntimeError('Le moteur Windows n’a pas produit un export complet unique.')
+        raise RuntimeError('The Windows converter did not produce a single complete export.')
     return load_export(complete[0].parent, stop, log)

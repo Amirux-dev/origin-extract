@@ -54,7 +54,9 @@ class InterfaceTests(unittest.TestCase):
             self.assertEqual(len(window.checked()), 18)
             window.list.setCurrentRow(12)
             self.assertEqual(window.table.model().rowCount(), 122)
-            self.assertEqual(window.provenance.text(), 'Reconstitué')
+            self.assertEqual(window.provenance.text(), 'Restored')
+            self.assertEqual(window.open_button.text(), '＋  Open')
+            self.assertEqual(window.export_button.text(), 'Export (18)')
             self.assertEqual(window.table.model().headerData(0, Qt.Orientation.Horizontal), 'Tsample')
             self.assertFalse(window.plot.grab().isNull())
             from dataclasses import replace
@@ -105,7 +107,7 @@ class InterfaceTests(unittest.TestCase):
                     dialog = ConnectionDialog(window)
                     dialog.network_task.wait(5000)
                     self.app.processEvents()
-                    self.assertIn('bloque', dialog.network_status.text())
+                    self.assertIn('blocking', dialog.network_status.text())
                     window.bridge = Bridge('unused')
                     window.bridge.start()
                     with patch('origin_extract.ui.local_addresses', return_value=['http://192.168.1.2:8765', 'http://100.64.1.2:8765']):
@@ -118,8 +120,8 @@ class InterfaceTests(unittest.TestCase):
             record = dict(sheet.record, column_metadata=[dict(source='Métadonnées non lisibles ; lettre de colonne')])
             window.set_project(replace(self.project, sheets=[replace(sheet, record=record)],
                                        warnings=[dict(reason='Noms indisponibles')]))
-            self.assertIn('avertissement', window.status_label.text())
-            self.assertIn('à nommer', window.provenance.text())
+            self.assertIn('warning', window.status_label.text())
+            self.assertIn('unnamed', window.provenance.text())
         finally:
             if window.bridge:
                 window.bridge.close()

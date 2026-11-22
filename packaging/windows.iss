@@ -8,8 +8,8 @@
 [Setup]
 AppId={{BB3CE502-706C-4E94-9EE5-EAEBE861B2B5}
 AppName=Origin Extract
-AppVersion=2.1.1
-AppVerName=Origin Extract 2.1.1
+AppVersion=2.1.2
+AppVerName=Origin Extract 2.1.2
 AppPublisher=Amir MEDDAS
 AppCopyright=Copyright 2026 Amir MEDDAS
 DefaultDirName={localappdata}\Programs\OriginExtract
@@ -20,7 +20,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 OutputDir={#SetupOutput}
-OutputBaseFilename=OriginExtract-2.1.1-Windows-x64-Setup
+OutputBaseFilename=OriginExtract-2.1.2-Windows-x64-Setup
 SetupIconFile=..\assets\OriginExtract.ico
 UninstallDisplayIcon={app}\OriginExtract.exe
 Compression=lzma2/fast
@@ -32,11 +32,10 @@ RestartApplications=no
 ChangesAssociations=yes
 
 [Languages]
-Name: "french"; MessagesFile: "compiler:Languages\French.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "Creer un raccourci sur le bureau"; GroupDescription: "Raccourcis :"; Flags: unchecked
+Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Shortcuts:"; Flags: unchecked
 
 [Files]
 Source: "{#AppBuildDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -46,12 +45,12 @@ Name: "{group}\Origin Extract"; Filename: "{app}\OriginExtract.exe"; WorkingDir:
 Name: "{autodesktop}\Origin Extract"; Filename: "{app}\OriginExtract.exe"; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\OriginExtract.exe"; Description: "Lancer Origin Extract"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\OriginExtract.exe"; Description: "Launch Origin Extract"; Flags: nowait postinstall skipifsilent
 
 [Registry]
 Root: HKCU; Subkey: "Software\Classes\.originpack"; ValueType: string; ValueName: ""; ValueData: "OriginExtract.Project"; Flags: createvalueifdoesntexist
 Root: HKCU; Subkey: "Software\Classes\.originpack\OpenWithProgids"; ValueType: none; ValueName: "OriginExtract.Project"; Flags: uninsdeletevalue
-Root: HKCU; Subkey: "Software\Classes\OriginExtract.Project"; ValueType: string; ValueName: ""; ValueData: "Projet Origin Extract"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\OriginExtract.Project"; ValueType: string; ValueName: ""; ValueData: "Origin Extract Project"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Classes\OriginExtract.Project\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\OriginExtract.exe,0"
 Root: HKCU; Subkey: "Software\Classes\OriginExtract.Project\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\OriginExtract.exe"" --open ""%1"""
 

@@ -10,6 +10,8 @@ import threading
 import unittest
 from unittest.mock import patch
 import zipfile
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from origin_extract import core
@@ -102,7 +104,7 @@ class PortableTests(unittest.TestCase):
         with zipfile.ZipFile(target, 'w') as archive:
             archive.writestr('manifest.json', json.dumps(manifest))
             archive.writestr('../outside.tsv', 'A\n1\n')
-        with self.assertRaisesRegex(ValueError, 'Chemin'):
+        with self.assertRaisesRegex(ValueError, 'path'):
             core.load_pack(target.getvalue())
 
     def test_cancel_does_not_produce_completed_export(self):
@@ -125,7 +127,7 @@ class PortableTests(unittest.TestCase):
         service.start()
         try:
             base = f'http://127.0.0.1:{service.port}'
-            with self.assertRaisesRegex(RuntimeError, 'Clé'):
+            with self.assertRaisesRegex(RuntimeError, 'Incorrect connection key'):
                 request(base, 'incorrect', '/health')
             with tempfile.TemporaryDirectory() as folder:
                 source = Path(folder) / 'test.opju'
@@ -133,6 +135,33 @@ class PortableTests(unittest.TestCase):
                 result = convert_remote(source, base, service.token)
             self.assertEqual(seen, [b'CPYUA test-only'])
             self.assertEqual([s.content for s in result.sheets], [s.content for s in self.project.sheets])
+        finally:
+            service.close()
+
+    def test_browser_welcome_and_missing_key_are_distinct(self):
+        service = Bridge('unused')
+        service.start()
+        try:
+            base = f'http://127.0.0.1:{service.port}'
+            with urlopen(base + '/', timeout=5) as response:
+                self.assertEqual(response.status, 200)
+                self.assertEqual(response.headers.get_content_type(), 'text/html')
+                page = response.read().decode('utf-8')
+                self.assertIn('Relay is running', page)
+                self.assertIn('Test connection', page)
+                self.assertNotIn(service.token, page)
+            with urlopen(base + '/favicon.ico', timeout=5) as response:
+                self.assertEqual(response.status, 204)
+            for path, data in (('/health', None), ('/jobs/example', None),
+                               ('/jobs/example/pack', None), ('/convert', b'CPYUA test'),
+                               ('/jobs/example/cancel', b'')):
+                with self.assertRaises(HTTPError) as caught:
+                    urlopen(Request(base + path, data=data), timeout=5)
+                self.assertEqual(caught.exception.code, 401)
+                error = json.loads(caught.exception.read())['error']
+                self.assertIn('Connection key required', error)
+                self.assertNotIn(service.token, error)
+            self.assertEqual(request(base, service.token, '/health')['service'], 'origin-extract')
         finally:
             service.close()
 

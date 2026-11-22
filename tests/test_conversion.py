@@ -18,9 +18,9 @@ class NumberTests(unittest.TestCase):
             self.assertEqual(decimal_text(value), value)
 
     def test_firewall_does_not_claim_lan_connectivity(self):
-        self.assertIn('bloque', firewall_message({'rules': [{'Profile': 6}]}))
-        self.assertIn('public', firewall_message({'profiles': [{'Category': 0}]}))
-        self.assertIn('ne vérifie pas', firewall_message({'profiles': [{'Category': 1}]}))
+        self.assertIn('blocking', firewall_message({'rules': [{'Profile': 6}]}))
+        self.assertIn('Public', firewall_message({'profiles': [{'Category': 0}]}))
+        self.assertIn('does not check', firewall_message({'profiles': [{'Category': 1}]}))
 
 
 @unittest.skipUnless(sys.platform == 'win32', 'Automatisation Windows')
