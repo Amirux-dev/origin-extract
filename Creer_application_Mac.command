@@ -10,12 +10,7 @@ fi
 if [ ! -x "$app_dir/.venv-mac/bin/python" ]; then
   python3 -m venv "$app_dir/.venv-mac"
 fi
-"$app_dir/.venv-mac/bin/python" -m pip install -r requirements.txt 'pyinstaller==6.22.3'
-"$app_dir/.venv-mac/bin/python" -m PyInstaller --noconfirm --windowed --name 'Origin Extract' \
-  --distpath "$app_dir/Application_Mac" --workpath "$app_dir/.construction-mac" \
-  --specpath "$app_dir/.construction-mac" \
-  --add-data "$app_dir/Exemples:Exemples" \
-  --add-data "$app_dir/noms_colonnes.json:." \
-  "$app_dir/lancer_origin_extract.py"
-echo "Application creee dans Application_Mac/Origin Extract.app"
-open "$app_dir/Application_Mac"
+"$app_dir/.venv-mac/bin/python" -m pip install -r requirements-macos.txt 'pyinstaller==6.22.3'
+"$app_dir/.venv-mac/bin/python" "$app_dir/packaging/build.py"
+echo "Application et DMG crees dans dist et installers. Auteur : Amir MEDDAS."
+open "$app_dir/installers"

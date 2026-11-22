@@ -42,7 +42,13 @@ class InterfaceTests(unittest.TestCase):
         try:
             window.set_project(self.project)
             self.assertEqual(len(window.checked()), 19)
-            window.list.item(0).setCheckState(Qt.CheckState.Unchecked)
+            window.show()
+            self.app.processEvents()
+            rect = window.list.visualItemRect(window.list.item(0))
+            point = rect.center()
+            point.setX(rect.left() + 14)
+            QTest.mouseClick(window.list.viewport(), Qt.MouseButton.LeftButton, pos=point)
+            self.assertEqual(window.list.item(0).checkState(), Qt.CheckState.Unchecked)
             window.search.setText('sr3ru2o7sust')
             self.assertEqual(sum(not window.list.item(i).isHidden() for i in range(19)), 7)
             self.assertEqual(len(window.checked()), 18)
@@ -51,6 +57,11 @@ class InterfaceTests(unittest.TestCase):
             self.assertEqual(window.provenance.text(), 'Reconstitué')
             self.assertEqual(window.table.model().headerData(0, Qt.Orientation.Horizontal), 'Tsample')
             self.assertFalse(window.plot.grab().isNull())
+            from dataclasses import replace
+            window.set_project(replace(self.project, sheets=self.project.sheets[:2]))
+            self.assertEqual(window.list.count(), 2)
+            self.assertEqual(window.search.text(), '')
+            self.assertEqual(len(window.checked()), 2)
         finally:
             window.close()
 

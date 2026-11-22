@@ -54,6 +54,7 @@ QPushButton#Primary:disabled { background: #4c3867; color: #9c83b5; border-color
 QPushButton#TextButton { color: #bb9add; background: transparent; border: none; padding: 3px 6px; }
 QPushButton#TextButton:hover { background: #2b1d38; }
 QPushButton#IconButton { font-size: 17px; padding: 3px; min-width: 27px; max-width: 27px; min-height: 27px; max-height: 27px; border-radius: 8px; }
+QPushButton::menu-indicator { image: none; width: 0px; }
 QLineEdit, QComboBox { background: #100d16; border: 1px solid #35283f; border-radius: 7px; padding: 5px 8px; min-height: 18px; selection-background-color: #654288; color: #e4d5f2; }
 QLineEdit:focus, QComboBox:focus { border-color: #a67ada; }
 QComboBox::drop-down { border: none; width: 22px; }

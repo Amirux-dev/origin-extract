@@ -47,6 +47,8 @@ def find_iscc():
 
 def main():
     os.chdir(ROOT)
+    assert (ROOT / 'dist').resolve().is_relative_to(ROOT)
+    assert (ROOT / '.build').resolve().is_relative_to(ROOT)
     app = icons()
     output = ROOT / 'installers'
     output.mkdir(exist_ok=True)
